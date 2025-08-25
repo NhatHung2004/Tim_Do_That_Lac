@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "207074955516",
+    "project_id": "lostandfound-b791b",
+    "storage_bucket": "lostandfound-b791b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:207074955516:android:85166b4303fe2e98c48779",
+        "android_client_info": {
+          "package_name": "com.nnh.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBlIGIA008WuTxPnlMofOoXvIPPIsZyb8c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
