@@ -11,8 +11,8 @@ import Setting from './src/components/Dashboard/Setting';
 import Colors from './src/constants/colors';
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { MyDispatchContext, MyUserContext } from './src/configs/MyContext';
-import { useContext, useReducer } from 'react';
+import { MyDispatchContext, MyRefreshContext, MyUserContext } from './src/configs/MyContext';
+import { useContext, useReducer, useState } from 'react';
 import MyUserReducer from './src/reducers/MyUserReducer';
 import PostDetail from './src/components/Dashboard/PostDetail';
 import ForgotPass from './src/components/User/ForgotPass';
@@ -23,6 +23,7 @@ import ChatScreen from './src/components/Message/ChatScreen';
 import GroupChatScreen from './src/components/Message/GroupChatScreen';
 import { PaperProvider } from 'react-native-paper';
 import CameraScreen from './src/components/SearchImage/CameraScreen';
+import EditPost from './src/components/Dashboard/EditPost';
 
 const Stack = createNativeStackNavigator();
 
@@ -111,7 +112,14 @@ const TabNavigator = () => {
           ),
         }}
       />
-      <Tab.Screen name="profile" component={ProfileScreen} />
+      <Tab.Screen
+        name="profile"
+        options={{
+          title: 'Tài khoản',
+          tabBarIcon: ({ color, size }) => <Feather name="user" size={size} color={color} />,
+        }}
+        component={ProfileScreen}
+      />
       <Tab.Screen
         name="setting"
         component={Setting}
@@ -170,21 +178,29 @@ const StackNavigator = () => {
         component={CameraScreen}
         options={{ title: 'Tìm kiếm bằng hình ảnh' }}
       />
+      <Stack.Screen
+        name="edit_post"
+        component={EditPost}
+        options={{ title: 'Chỉnh sửa bài đăng', headerStyle: { backgroundColor: Colors.primary } }}
+      />
     </Stack.Navigator>
   );
 };
 
 export default function App() {
   const [user, dispatch] = useReducer(MyUserReducer, null);
+  const [refresh, setRefresh] = useState(false);
 
   return (
     <MyUserContext.Provider value={user}>
       <MyDispatchContext.Provider value={dispatch}>
-        <PaperProvider>
-          <NavigationContainer>
-            <StackNavigator />
-          </NavigationContainer>
-        </PaperProvider>
+        <MyRefreshContext.Provider value={[refresh, setRefresh]}>
+          <PaperProvider>
+            <NavigationContainer>
+              <StackNavigator />
+            </NavigationContainer>
+          </PaperProvider>
+        </MyRefreshContext.Provider>
       </MyDispatchContext.Provider>
     </MyUserContext.Provider>
   );

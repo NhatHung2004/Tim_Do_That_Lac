@@ -8,15 +8,17 @@ import CustomButton from '../ui/CustomButton';
 import CustomInput from '../ui/CustomInput';
 import AuthHeader from '../ui/AuthHeader';
 import Api, { endpoints } from '../../configs/Api';
-
-const { width } = Dimensions.get('window');
+import MyLoading from '../ui/MyLoading';
+import formatErrorMessages from '../../utils/FormatError';
 
 export default function LoginScreen() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [phone, setPhone] = useState('');
+  const [fullname, setFullname] = useState('');
+  const [email, setEmail] = useState('');
   const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
 
   const [isPasswordFocused, setIsPasswordFocused] = useState(false);
 
@@ -26,9 +28,10 @@ export default function LoginScreen() {
     let newErrors = {};
 
     if (!username.trim()) newErrors.username = 'Tên đăng nhập không được để trống';
-    if (!phone.trim()) newErrors.phone = 'Số điện thoại không được để trống';
+    if (!fullname.trim()) newErrors.fullname = 'Tên không được để trống không được để trống';
     if (!password.trim()) newErrors.password = 'Mật khẩu không được để trống';
     if (!confirmPassword.trim()) newErrors.confirmPassword = 'Xác nhận mật khẩu là bắt buộc.';
+    if (!email.trim()) newErrors.email = 'Email là bắt buộc';
     else if (confirmPassword !== password)
       newErrors.confirmPassword = 'Mật khẩu xác nhận không khớp.';
 
@@ -36,16 +39,26 @@ export default function LoginScreen() {
 
     if (Object.keys(newErrors).length === 0) {
       try {
-        const response = await Api.post(endpoints['register'], {
+        setLoading(true);
+        const res = await Api.post(endpoints['register'], {
           username: username,
-          phone: phone,
+          fullname: fullname,
           password: password,
+          email: email,
         });
 
         Alert.alert('Đăng ký thành công');
         navigation.goBack();
       } catch (error) {
-        console.log(error);
+        setLoading(false);
+        if (error.response && error.response.status === 400) {
+          // error.response.data chứa chi tiết validate error từ Django
+          Alert.alert('Đăng ký thất bại', formatErrorMessages(error.response.data));
+        } else {
+          Alert.alert('Có lỗi xảy ra', 'Vui lòng thử lại sau');
+        }
+      } finally {
+        setLoading(false);
       }
     } else {
       // Nếu có lỗi, hiển thị thông báo
@@ -85,12 +98,13 @@ export default function LoginScreen() {
         />
 
         <CustomInput
-          placeholder="Số điện thoại"
-          value={phone}
-          setValue={setPhone}
-          keyboardType="phone-pad"
-          error={errors.phone}
+          placeholder="Tên người dùng"
+          value={fullname}
+          setValue={setFullname}
+          error={errors.fullname}
         />
+
+        <CustomInput placeholder="Email" value={email} setValue={setEmail} error={errors.email} />
 
         <PasswordInput
           placeholder="Mật khẩu"
@@ -153,7 +167,11 @@ export default function LoginScreen() {
           error={errors.confirmPassword}
         />
 
-        <CustomButton text="ĐĂNG KÝ" onPress={handleRegister} bgColor={Colors.primary} />
+        {loading ? (
+          <MyLoading color={Colors.primary} />
+        ) : (
+          <CustomButton text="ĐĂNG KÝ" onPress={handleRegister} bgColor={Colors.primary} />
+        )}
 
         <View style={styles.separatorContainer}>
           <View style={styles.line} />
@@ -164,18 +182,9 @@ export default function LoginScreen() {
         <View style={styles.socialButtonsContainer}>
           <TouchableOpacity style={styles.socialButton}>
             <Image
-              source={require('../../../assets/img/facebook-new.png')}
-              style={styles.socialIcon}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.socialButton}>
-            <Image
               source={require('../../../assets/img/google-logo.png')}
               style={styles.socialIcon}
             />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.socialButton}>
-            <Image source={require('../../../assets/img/zalo.png')} style={styles.socialIcon} />
           </TouchableOpacity>
         </View>
 
@@ -251,7 +260,7 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   socialButton: {
-    width: (width - 80) / 3, // Khoảng cách giữa các nút
+    width: '80%', // Khoảng cách giữa các nút
     height: 50,
     borderWidth: 1,
     borderColor: Colors.gray,
@@ -260,7 +269,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   socialIcon: {
-    width: 30,
+    width: '80%',
     height: 30,
     resizeMode: 'contain',
   },

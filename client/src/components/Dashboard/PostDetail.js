@@ -19,6 +19,7 @@ import { useNavigation } from '@react-navigation/native';
 import Api, { endpoints } from '../../configs/Api';
 import { useRoute } from '@react-navigation/native';
 import { MyUserContext } from '../../configs/MyContext';
+import FormatDate from '../../utils/FormatDate';
 
 const { width } = Dimensions.get('window');
 
@@ -116,7 +117,7 @@ const PostDetail = () => {
           </View>
           <View style={styles.postedTimeContainer}>
             <Ionicons name="time-outline" size={18} color="#666" />
-            <Text style={styles.productPostedTime}>{postData.posted_time}</Text>
+            <Text style={styles.productPostedTime}>{FormatDate(postData.posted_time)}</Text>
           </View>
         </View>
 
@@ -149,23 +150,31 @@ const PostDetail = () => {
 
       {/* Footer */}
       <View style={styles.footer}>
-        <TouchableOpacity style={[styles.footerButton, styles.callButton]}>
-          <Ionicons name="call-outline" size={20} color="#3B71F3" />
-          <Text style={[styles.footerButtonText, styles.callButtonText]}>Gọi</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.footerButton, styles.chatButton]}
-          onPress={() => {
-            if (user) {
-              navigation.navigate('chat_screen', {
-                other_user_id: postData.user.id,
-              });
-            } else navigation.navigate('login');
-          }}
-        >
-          <Ionicons name="chatbox-ellipses-outline" size={20} color="#fff" />
-          <Text style={[styles.footerButtonText, styles.chatButtonText]}>Chat</Text>
-        </TouchableOpacity>
+        {user.current_user.id === user_post.id ? (
+          <TouchableOpacity style={[styles.footerButton, styles.chatButton]}>
+            <Text style={[styles.footerButtonText, styles.chatButtonText]}>Chỉnh sửa bài đăng</Text>
+          </TouchableOpacity>
+        ) : (
+          <>
+            <TouchableOpacity style={[styles.footerButton, styles.callButton]}>
+              <Ionicons name="call-outline" size={20} color="#3B71F3" />
+              <Text style={[styles.footerButtonText, styles.callButtonText]}>Gọi</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.footerButton, styles.chatButton]}
+              onPress={() => {
+                if (user) {
+                  navigation.navigate('chat_screen', {
+                    other_user_id: postData.user.id,
+                  });
+                } else navigation.navigate('login');
+              }}
+            >
+              <Ionicons name="chatbox-ellipses-outline" size={20} color="#fff" />
+              <Text style={[styles.footerButtonText, styles.chatButtonText]}>Chat</Text>
+            </TouchableOpacity>
+          </>
+        )}
       </View>
     </SafeAreaView>
   );

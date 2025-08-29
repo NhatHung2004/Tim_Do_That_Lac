@@ -1,8 +1,7 @@
 import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Colors from '../../constants/colors';
-import moment from 'moment';
-import 'moment/locale/vi';
+import FormatDate from '../../utils/FormatDate';
 
 export default function PostItem({
   id,
@@ -17,8 +16,6 @@ export default function PostItem({
   user,
   tags,
 }) {
-  const date_only = moment(posted_time).format('DD/MM/YYYY');
-
   return (
     <View style={styles.card}>
       {/* Label */}
@@ -75,7 +72,7 @@ export default function PostItem({
 
           <Text style={styles.userName}>{user.username}</Text>
           <Ionicons name="time-outline" size={16} color="gray" style={{ marginLeft: 20 }} />
-          <Text style={styles.timeText}>{date_only}</Text>
+          <Text style={styles.timeText}>{FormatDate(posted_time)}</Text>
         </View>
 
         {/* Footer */}

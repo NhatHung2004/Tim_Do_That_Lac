@@ -1,4 +1,4 @@
-import { useEffect, useState, useContext, useRef } from 'react';
+import { useEffect, useState, useContext, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -12,10 +12,10 @@ import {
 
 import Colors from '../../constants/colors';
 import PostItem from '../ui/PostItem';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import Api, { AuthApi, endpoints } from '../../configs/Api';
 import { Ionicons } from '@expo/vector-icons';
-import { MyUserContext } from '../../configs/MyContext';
+import { MyRefreshContext, MyUserContext } from '../../configs/MyContext';
 import axios from 'axios';
 import CustomModalFilter from '../ui/CustommModalFilter';
 
@@ -27,6 +27,7 @@ export default function HomeScreen() {
   const [provinces, setProvinces] = useState([]);
   const [loading, setLoading] = useState(false);
   const navigation = useNavigation();
+  const [refresh, setRefresh] = useContext(MyRefreshContext);
 
   const [modalCategoriesVisible, setModalCategoriesVisible] = useState(false);
   const [modalProvincesVisible, setModalProvincesVisible] = useState(false);
@@ -60,22 +61,33 @@ export default function HomeScreen() {
     fetchCategories();
   }, []);
 
+  const fetchPostsData = async () => {
+    try {
+      const response = await Api.get(endpoints['posts'], {
+        params: {
+          kw: searchText, // Thêm từ khóa tìm kiếm vào tham số
+        },
+      });
+      setPosts(response.data);
+    } catch (error) {
+      console.error('Error fetching found items:', error);
+    }
+  };
+
   // Lấy dữ liệu bài đăng
   useEffect(() => {
-    const fetchPostsData = async () => {
-      try {
-        const response = await Api.get(endpoints['posts'], {
-          params: {
-            kw: searchText, // Thêm từ khóa tìm kiếm vào tham số
-          },
-        });
-        setPosts(response.data);
-      } catch (error) {
-        console.error('Error fetching found items:', error);
-      }
-    };
     fetchPostsData();
   }, [searchText]);
+
+  // lấy dữ liệu bài đăng mỗi khi focus screen
+  useFocusEffect(
+    useCallback(() => {
+      if (refresh) {
+        fetchPostsData();
+        setRefresh(false);
+      }
+    }, [refresh]),
+  );
 
   // Hàm lấy dữ liệu bài đăng đã lọc theo danh mục và thành phố
   const handleGetPostsFiltered = async () => {

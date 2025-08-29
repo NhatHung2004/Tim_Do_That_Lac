@@ -4,7 +4,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Dimensions,
   TextInput,
   Platform,
   Modal,
@@ -26,8 +25,6 @@ import MyLoading from '../ui/MyLoading';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { Button, Menu } from 'react-native-paper';
-
-const { width } = Dimensions.get('window');
 
 const UploadPost = () => {
   const [menuVisible, setMenuVisible] = useState(false);
@@ -66,6 +63,7 @@ const UploadPost = () => {
   const [location, setLocation] = useState('');
   const [tag, setTag] = useState('');
   const [tags, setTags] = useState([]);
+  const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
 
   const [isAddressModalVisible, setIsAddressModalVisible] = useState(false); // Điều khiển hiển thị modal địa chỉ
@@ -129,7 +127,7 @@ const UploadPost = () => {
       formData.append('user_id', user_id);
       formData.append('category_id', category_id);
       formData.append('tags', JSON.stringify(tags)); // chuyển đổi thành JSON
-      console.log('Selected Images:', formData);
+      formData.append('phone', phone);
       selectedImages.forEach((image, index) => {
         formData.append('images', {
           uri: image.uri,
@@ -182,35 +180,6 @@ const UploadPost = () => {
   // Xoá ảnh đã chọn
   const handleRemoveImage = indexToRemove => {
     setSelectedImages(selectedImages.filter((_, index) => index !== indexToRemove));
-  };
-
-  // Sử dụng máy ảnh
-  const takePhoto = () => {
-    ImageCropPicker.openCamera({
-      mediaType: 'photo',
-      cropping: true, // Cho phép cắt ảnh sau khi chụp
-      width: 300,
-      height: 400,
-      compressImageQuality: 0.8,
-    })
-      .then(image => {
-        console.log(image);
-        setSelectedImages(prevImages => [
-          ...prevImages,
-          {
-            uri: image.path,
-            name: image.filename || image.path.split('/').pop(),
-            type: image.mime,
-          },
-        ]);
-      })
-      .catch(e => {
-        console.log('Camera cancelled or error: ', e);
-        if (e.code === 'E_PICKER_CANCELLED') {
-        } else {
-          Alert.alert('Lỗi', 'Có lỗi xảy ra khi chụp ảnh.');
-        }
-      });
   };
 
   // Fetch provinces khi component mount
@@ -472,6 +441,17 @@ const UploadPost = () => {
               value={description}
               onChangeText={text => setDescription(text)}
               textAlignVertical="top"
+            />
+
+            <Text style={[styles.inputLabel, { marginTop: 15 }]}>Số điện thoại</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="Số điện thoại..."
+              placeholderTextColor={Platform.OS === 'android' && Colors.textGray}
+              maxLength={50}
+              value={phone}
+              onChangeText={text => setPhone(text)}
+              keyboardType="phone-pad"
             />
 
             {/* Tag Input */}

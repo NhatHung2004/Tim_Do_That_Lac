@@ -9,18 +9,16 @@ import {
   FlatList,
   KeyboardAvoidingView,
   Platform,
-  Dimensions,
   Keyboard,
 } from 'react-native';
 import { Ionicons, Feather, Entypo } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Colors from '../../constants/colors';
-import Api, { endpoints } from '../../configs/Api';
+import { AuthApi, endpoints } from '../../configs/Api';
 import { MyUserContext } from '../../configs/MyContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
-
-const { width } = Dimensions.get('window');
+import { SUB_NGROK_URL } from '@env';
 
 const ChatScreen = () => {
   const [messages, setMessages] = useState([]);
@@ -42,7 +40,7 @@ const ChatScreen = () => {
   useEffect(() => {
     const connectWebSocKet = async () => {
       const token = await AsyncStorage.getItem('token');
-      const SUB_NGROK_URL = Constants.expoConfig.extra.SUB_NGROK_URL;
+      // const SUB_NGROK_URL = Constants.expoConfig.extra.SUB_NGROK_URL;
       const socketUrl = `wss://${SUB_NGROK_URL}/ws/chat/${other_user_id}/?token=${token}`;
 
       webSocketRef.current = new WebSocket(socketUrl);
@@ -105,7 +103,8 @@ const ChatScreen = () => {
   useEffect(() => {
     const fetchOtherUser = async () => {
       try {
-        const res = await Api.get(endpoints.userDetail(other_user_id));
+        const token = await AsyncStorage.getItem('token');
+        const res = await AuthApi(token).get(endpoints.userDetail(other_user_id));
         setOtherUser(res.data);
       } catch (error) {
         console.log(error);
@@ -113,7 +112,7 @@ const ChatScreen = () => {
     };
 
     fetchOtherUser();
-  }, [other_user_id]);
+  }, []);
 
   const handleSendMessage = () => {
     if (inputText.trim() === '') return;

@@ -28,7 +28,7 @@
       },
       "edgeToEdgeEnabled": true,
       "permissions": ["CAMERA", "READ_EXTERNAL_STORAGE", "WRITE_EXTERNAL_STORAGE"],
-      "package": "com.anonymous.client"
+      "package": "com.nnh.dan"
     },
     "web": {
       "favicon": "./assets/img/user.png"
@@ -37,8 +37,8 @@
       "eas": {
         "projectId": "e4cbbacb-bb13-4f87-9cad-7f6829a3a22e"
       },
-      "NGROK_URL": "https://3eba4837a505.ngrok-free.app",
-      "SUB_NGROK_URL": "3eba4837a505.ngrok-free.app"
+      "NGROK_URL": "https://54689bea9ea6.ngrok-free.app",
+      "SUB_NGROK_URL": "54689bea9ea6.ngrok-free.app"
     }
   }
 }

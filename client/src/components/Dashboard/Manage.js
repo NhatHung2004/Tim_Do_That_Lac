@@ -1,45 +1,41 @@
-import React, { useContext, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Platform, TouchableOpacity } from 'react-native';
+import React, { useContext, useCallback, useState, useEffect } from 'react';
+import { View, Text, StyleSheet, Platform, TouchableOpacity, FlatList } from 'react-native';
 import Colors from '../../constants/colors';
 import { Ionicons } from '@expo/vector-icons';
 import ManagedPostItem from '../ui/ManagedPostItem';
-import { MyUserContext } from '../../configs/MyContext';
-import { useNavigation } from '@react-navigation/native';
+import { MyRefreshContext, MyUserContext } from '../../configs/MyContext';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthApi, endpoints } from '../../configs/Api';
-
-const data = [
-  {
-    title: 'Nice Apartment',
-    location: 'New York',
-    description: 'A nice apartment in the heart of New York',
-    date: 'Jan 2, 2024',
-  },
-];
 
 export default function ManageScreen() {
   const navigation = useNavigation();
   const [dataPosts, setDataPosts] = useState([]);
   const user = useContext(MyUserContext);
+  const [refresh, setRefresh] = useContext(MyRefreshContext);
 
-  useEffect(() => {
-    const fetchPostsData = async () => {
-      if (user == null) return;
+  const fetchPostsData = async () => {
+    if (user == null) return;
 
-      try {
-        const token = await AsyncStorage.getItem('token');
-        const res = await AuthApi(token).get(endpoints.userPosts(user.current_user.id));
-        setDataPosts(res.data);
-      } catch (error) {
-        console.error('Error fetching posts:', error);
-      }
-    };
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const res = await AuthApi(token).get(endpoints.userPosts(user.current_user.id));
+      setDataPosts(res.data.posts);
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+    }
+  };
 
-    fetchPostsData();
-    console.log('api da call');
-  }, []);
+  const handleDeleted = post_id => {
+    setDataPosts(prev => prev.filter(p => p.id !== post_id));
+    setRefresh(true);
+  };
 
-  console.log('Current User:', dataPosts);
+  useFocusEffect(
+    useCallback(() => {
+      fetchPostsData();
+    }, []),
+  );
 
   return (
     <View
@@ -71,11 +67,12 @@ export default function ManageScreen() {
             <Ionicons name="add-circle-outline" size={24} color={Colors.black} />
           </View>
 
-          <View style={{ flex: 1, backgroundColor: '#f0f0f0' }}>
-            {dataPosts.posts.map((item, index) => (
-              <ManagedPostItem key={index} {...item} />
-            ))}
-          </View>
+          <FlatList
+            data={dataPosts}
+            renderItem={({ item }) => <ManagedPostItem {...item} onDeleted={handleDeleted} />}
+            keyExtractor={item => item.id}
+            showsVerticalScrollIndicator={false}
+          />
         </>
       )}
     </View>

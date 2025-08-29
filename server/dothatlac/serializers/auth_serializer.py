@@ -15,7 +15,7 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
             'id': user.id,
             'username': user.username,
             'email': user.email,
-            'phone': getattr(user, 'phone', None),
+            'full_name': user.full_name,
             'avatar': user.avatar if user.avatar else None,
         }
         return data # type: ignore

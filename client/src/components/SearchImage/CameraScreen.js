@@ -1,20 +1,13 @@
 // screens/CameraScreen.js
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  Image,
-  TouchableOpacity,
-  FlatList,
-  StyleSheet,
-  PermissionsAndroid,
-} from 'react-native';
+import { View, Text, Image, TouchableOpacity, FlatList, StyleSheet } from 'react-native';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import Api, { endpoints } from '../../configs/Api';
 import PostItem from '../ui/PostItem';
 import MyLoading from '../ui/MyLoading';
 import { useNavigation } from '@react-navigation/native';
 import Colors from '../../constants/colors';
+import requestCameraPermission from '../../utils/RequestCamera';
 
 export default function CameraScreen() {
   const [imageUris, setImageUris] = useState([]);
@@ -72,23 +65,6 @@ export default function CameraScreen() {
       setLoading(false);
     }
   };
-
-  // Camera
-  async function requestCameraPermission() {
-    try {
-      const granted = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.CAMERA, {
-        title: 'Camera Permission',
-        message: 'App cần quyền truy cập camera để chụp ảnh',
-        buttonNeutral: 'Hỏi lại sau',
-        buttonNegative: 'Hủy',
-        buttonPositive: 'OK',
-      });
-      return granted === PermissionsAndroid.RESULTS.GRANTED;
-    } catch (err) {
-      console.warn(err);
-      return false;
-    }
-  }
 
   const handleTakePhoto = async () => {
     const hasPermission = await requestCameraPermission();

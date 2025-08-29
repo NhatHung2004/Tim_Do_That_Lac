@@ -5,8 +5,10 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.views import APIView
 from .models import User, Post, PostImage, ChatRoom, Tag, Category
 from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.tokens import RefreshToken
 from cloudinary import uploader
 from .serializers.category_serializer import CategorySerializer
 from .serializers.chat_room_serializer import ChatRoomSerializer
@@ -19,9 +21,52 @@ import requests
 from PIL import Image
 from io import BytesIO
 from dothatlac.search_image.image_extractor import image_extractor, find_similar
+from google.oauth2 import id_token
+from google.auth.transport import requests as requests_google
 
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
+
+class SaveFCMTokenView(APIView):
+    def post(self, request):
+        token = request.data.get("token")
+        user = request.user
+        if token:
+            Device.objects.update_or_create(user=user, defaults={"token": token})
+            return Response({"message": "Token saved"}, status=status.HTTP_200_OK)
+        return Response({"error": "Token missing"}, status=status.HTTP_400_BAD_REQUEST)
+
+class GoogleLoginView(APIView):
+    def post(self, request, *args, **kwargs):
+        token = request.data.get('token')
+        try:
+            # Xác thực idToken với Google
+            id_info = id_token.verify_oauth2_token(token, requests_google.Request())
+
+            email = id_info['email']
+            username = id_info['name']
+
+            user, created = User.get_or_create_user(email=email, username=username)
+
+            # Sinh JWT token
+            refresh = RefreshToken.for_user(user)
+
+            print(user)
+            return Response({
+                'access_token': str(refresh.access_token),
+                "refresh": str(refresh),
+                'user': {
+                    'id': user.id,
+                    'username': user.username,
+                    'email': user.email,
+                    'phone': getattr(user, 'phone', None),
+                    'avatar': user.avatar if user.avatar else None,
+                }
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=400)
+
 
 class UserView(viewsets.ViewSet, generics.CreateAPIView, generics.RetrieveAPIView,
                generics.ListAPIView, generics.DestroyAPIView, generics.UpdateAPIView):
@@ -47,11 +92,39 @@ class UserView(viewsets.ViewSet, generics.CreateAPIView, generics.RetrieveAPIVie
             return [AllowAny()]
         return [IsAuthenticated()]
 
-class PostView(viewsets.ViewSet, generics.CreateAPIView, generics.RetrieveAPIView, generics.ListAPIView):
+class PostView(viewsets.ViewSet, generics.CreateAPIView, generics.RetrieveAPIView,
+               generics.ListAPIView, generics.RetrieveUpdateDestroyAPIView):
     parser_classes = [MultiPartParser, JSONParser]
     serializer_class = PostSerializer
     queryset = Post.objects.all()
     permission_classes = [IsAuthenticated]
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop("partial", False)  # PATCH = partial update
+        instance = self.get_object()
+
+        # lấy dữ liệu ảnh từ request
+        images_data = request.FILES.getlist("images")
+
+        # update các field khác (title, description, phone, ...)
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        # xử lý ảnh
+        if images_data is not None:
+            for img in images_data:
+                result = uploader.upload(img)
+                image_url = result['secure_url']
+
+                # Trích xuất feature từ file
+                response = requests.get(image_url)
+                pil_img = Image.open(BytesIO(response.content)).convert("RGB")
+                vector = image_extractor(pil_img)
+
+                PostImage.objects.create(post=instance, image=image_url, image_vector=vector.tolist())
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     def create(self, request, *args, **kwargs):
         data = request.data.copy()
@@ -78,6 +151,7 @@ class PostView(viewsets.ViewSet, generics.CreateAPIView, generics.RetrieveAPIVie
             province=data.get('province', ''),
             district=data.get('district', ''),
             ward=data.get('ward', ''),
+            phone=data.get('phone', ''),
             location=data.get('location', ''),
             type=data.get('type', 'found'),
             status='processing',
@@ -95,9 +169,6 @@ class PostView(viewsets.ViewSet, generics.CreateAPIView, generics.RetrieveAPIVie
             # Trích xuất feature từ file
             response = requests.get(image_url)
             pil_img = Image.open(BytesIO(response.content)).convert("RGB")
-
-            # Lưu tạm file trong RAM để extract
-            # pil_img.save("temp.jpg")
             vector = image_extractor(pil_img)
 
             PostImage.objects.create(post=post, image=image_url, image_vector=vector.tolist())
@@ -191,7 +262,7 @@ class CategoryView(viewsets.ViewSet, generics.ListAPIView):
     serializer_class = CategorySerializer
     permission_classes = [AllowAny]
 
-class PostImageView(viewsets.ViewSet, generics.ListAPIView):
+class PostImageView(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAPIView):
     queryset = PostImage.objects.all()
     serializer_class = PostImageSerializer
     parser_classes = [MultiPartParser, FormParser]

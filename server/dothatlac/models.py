@@ -2,11 +2,36 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 
 class User(AbstractUser):
-    phone = models.CharField(unique=True, max_length=20, null=True)
+    full_name = models.CharField(max_length=255, null=True, blank=True)
     avatar = models.URLField(null=True, blank=True)
 
     def __str__(self):
         return f'{self.first_name} {self.last_name}'
+
+    @classmethod
+    def get_or_create_user(cls, username, email):
+        user = cls.objects.filter(email=email).first()
+        if user:
+            # Nếu user đã tồn tại theo email -> update username nếu khác
+            if user.username != username:
+                user.username = username
+                user.save(update_fields=["username"])
+            created = False
+        else:
+            user = cls.objects.create(username=username, email=email)
+            created = True
+        return user, created
+
+class FCMToken(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='fcm_tokens')
+    token = models.CharField(max_length=255, unique=True)
+    device_type = models.CharField(max_length=50, null=True, blank=True)  # android / ios / web
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"FCMToken({self.user.username}, {self.device_type})"
 
 class Category(models.Model):
     name = models.CharField(max_length=200)
@@ -17,6 +42,7 @@ class Category(models.Model):
 class Post(models.Model):
     title = models.CharField(max_length=120)
     description = models.TextField(max_length=500, null=True, blank=True)
+    phone = models.CharField(max_length=20, null=True)
     province = models.CharField(max_length=150, null=True, blank=True)
     district = models.CharField(max_length=150, null=True, blank=True)
     ward = models.CharField(max_length=150, null=True, blank=True)

@@ -1,8 +1,10 @@
+from rest_framework.exceptions import ValidationError
 from rest_framework.relations import PrimaryKeyRelatedField
 from rest_framework.serializers import ModelSerializer
 from dothatlac.models import PostImage, Post, User, Category, Tag
 from dothatlac.serializers import user_serializer
 from dothatlac.serializers import category_serializer
+import re
 
 class PostImageSerializer(ModelSerializer):
     class Meta:
@@ -32,5 +34,13 @@ class PostSerializer(ModelSerializer):
 
     class Meta:
         model = Post
-        fields = ['id', 'title', 'description', 'province', 'district', 'ward', 'location',
+        fields = ['id', 'title', 'description', 'province', 'district', 'ward', 'location', 'phone',
                   'posted_time', 'type', 'user', 'category', 'category_id', 'user_id', 'images', "tags"]
+
+    def validate_phone(self, value):
+        # Regex kiểm tra số điện thoại Việt Nam (bắt đầu bằng 0, 10 số)
+        pattern = r'^0[0-9]{9}$'
+        if not re.match(pattern, value):
+            raise ValidationError("Số điện thoại không hợp lệ.")
+
+        return value

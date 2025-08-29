@@ -1,6 +1,6 @@
-import { View, Text, TouchableOpacity, StyleSheet, Image, Dimensions, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image, Alert } from 'react-native';
 import Colors from '../../constants/colors';
-import { useContext, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Api, { endpoints } from '../../configs/Api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -9,16 +9,59 @@ import CustomButton from '../ui/CustomButton';
 import CustomInput from '../ui/CustomInput';
 import PasswordInput from '../ui/PasswordInput';
 import AuthHeader from '../ui/AuthHeader';
-
-const { width } = Dimensions.get('window');
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import MyLoading from '../ui/MyLoading';
+import { WEB_CLIENT_ID } from '@env';
 
 export default function LoginScreen() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadingGoogle, setLoadingGoogle] = useState(false);
   const navigation = useNavigation();
   const route = useRoute();
   const dispatch = useContext(MyDispatchContext);
+
+  useEffect(() => {
+    GoogleSignin.configure({
+      webClientId: '766873287455-ejcno1nu4e0sqh13e0egnol3faa9j9hq.apps.googleusercontent.com',
+    });
+  }, []);
+
+  const googleLogin = async () => {
+    try {
+      setLoadingGoogle(true);
+
+      await GoogleSignin.signOut();
+
+      // Kiểm tra thiết bị có hỗ trợ Google Play
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      const signInResult = await GoogleSignin.signIn();
+
+      const res = await Api.post(endpoints['google'], {
+        token: signInResult.data.idToken,
+      });
+
+      await AsyncStorage.setItem('token', res.data.access_token);
+
+      const current_user = res.data.user;
+      dispatch({ type: 'login', payload: { current_user } });
+
+      if (route.params !== undefined) {
+        const { redirectScreen } = route.params;
+
+        navigation.reset({
+          index: 0,
+          routes: [{ name: redirectScreen }],
+        });
+      } else navigation.goBack();
+    } catch (error) {
+      setLoadingGoogle(false);
+      console.log(error);
+    } finally {
+      setLoadingGoogle(false);
+    }
+  };
 
   const handleLogin = async () => {
     setLoading(true);
@@ -31,6 +74,8 @@ export default function LoginScreen() {
 
       const token = response.data.access;
       const current_user = response.data.user;
+
+      console.log('asdasd', current_user);
 
       await AsyncStorage.setItem('token', token);
 
@@ -45,6 +90,7 @@ export default function LoginScreen() {
         });
       } else navigation.goBack();
     } catch (error) {
+      setLoading(false);
       Alert.alert('Đăng nhập không thành công', 'Sai tài khoản hoặc mật khẩu', [{ text: 'OK' }]);
     } finally {
       setLoading(false);
@@ -68,7 +114,11 @@ export default function LoginScreen() {
           <Text style={styles.forgotPassword}>Quên mật khẩu?</Text>
         </TouchableOpacity>
 
-        <CustomButton text="ĐĂNG NHẬP" onPress={handleLogin} bgColor={Colors.primary} />
+        {loading ? (
+          <MyLoading color={Colors.primary} />
+        ) : (
+          <CustomButton text="ĐĂNG NHẬP" onPress={handleLogin} bgColor={Colors.primary} />
+        )}
 
         <View style={styles.separatorContainer}>
           <View style={styles.line} />
@@ -78,20 +128,15 @@ export default function LoginScreen() {
 
         {/* Social Login Buttons */}
         <View style={styles.socialButtonsContainer}>
-          <TouchableOpacity style={styles.socialButton}>
-            <Image
-              source={require('../../../assets/img/facebook-new.png')}
-              style={styles.socialIcon}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.socialButton}>
-            <Image
-              source={require('../../../assets/img/google-logo.png')}
-              style={styles.socialIcon}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.socialButton}>
-            <Image source={require('../../../assets/img/zalo.png')} style={styles.socialIcon} />
+          <TouchableOpacity style={styles.socialButton} onPress={googleLogin}>
+            {loadingGoogle ? (
+              <MyLoading color={Colors.primary} />
+            ) : (
+              <Image
+                source={require('../../../assets/img/google-logo.png')}
+                style={styles.socialIcon}
+              />
+            )}
           </TouchableOpacity>
         </View>
 
@@ -165,8 +210,8 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   socialButton: {
-    width: (width - 80) / 3,
-    height: 50,
+    width: '80%',
+    height: '50',
     borderWidth: 1,
     borderColor: Colors.gray,
     borderRadius: 8,

@@ -13,6 +13,11 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from pathlib import Path
 from decouple import config
 import os
+import firebase_admin
+from firebase_admin import credentials
+
+cred = credentials.Certificate("/Users/nhathung/Documents/workspace/Do_An_Nganh/Tim_Do_That_Lac/server/dothatlac/config/lostfound-3b607-firebase-adminsdk-fbsvc-abb494d97f.json")
+firebase_admin.initialize_app(cred)
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 

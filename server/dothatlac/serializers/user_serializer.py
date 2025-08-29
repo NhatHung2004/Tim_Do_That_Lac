@@ -1,34 +1,25 @@
 from rest_framework.exceptions import ValidationError
 from rest_framework.fields import URLField
 from rest_framework.serializers import ModelSerializer
-from dothatlac.models import User, Post
+from dothatlac.models import User, Post, PostImage
 from cloudinary import uploader
-import re
 
 class UserSerializer(ModelSerializer):
     avatar = URLField(read_only=True)
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'phone', 'avatar']
+        fields = ['id', 'username', 'full_name', 'avatar']
 
 class UserRegistrationSerializers(ModelSerializer):
     class Meta:
         model = User
-        fields = ['username', 'first_name', 'last_name', 'email', 'password', 'phone', 'avatar']
-        extra_kwargs = {'password': {'write_only': True}}
+        fields = ['username', 'email', 'password', 'avatar', 'full_name']
+        extra_kwargs = {'password': {'write_only': True}, 'avatar': {'read_only': True}}
 
     def validate_email(self, value):
         if User.objects.filter(email=value).exists():
-            raise ValidationError("A user with that email already exists.")
-        return value
-
-    def validate_phone(self, value):
-        # Regex kiểm tra số điện thoại Việt Nam (bắt đầu bằng 0, 10 số)
-        pattern = r'^0[0-9]{9}$'
-        if not re.match(pattern, value):
-            raise ValidationError("Invalid phone number.")
-
+            raise ValidationError("Email đã tồn tại.")
         return value
 
     def create(self, validated_data):
@@ -43,10 +34,18 @@ class UserRegistrationSerializers(ModelSerializer):
 
         return user
 
+class PostImageSerializer(ModelSerializer):
+    class Meta:
+        model = PostImage
+        fields = ['id', 'image']
+
 class PostSerializer(ModelSerializer):
+    images = PostImageSerializer(source='postimage_set', many=True, read_only=True)
+
     class Meta:
         model = Post
-        fields = ['id', 'title', 'description', 'province', 'district', 'ward', 'posted_time', 'location']
+        fields = ['id', 'title', 'description', 'province', 'district', 'ward', 'posted_time',
+                  'location', 'phone', 'type', 'status', 'images']
 
 class UserPostSerializer(ModelSerializer):
     posts = PostSerializer(many=True, read_only=True)

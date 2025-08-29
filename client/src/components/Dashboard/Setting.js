@@ -16,6 +16,7 @@ import SectionItem from '../ui/SectionItem';
 import { MyUserContext, MyDispatchContext } from '../../configs/MyContext';
 import { useContext } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 
 export default function MoreScreen() {
   const navigation = useNavigation();
@@ -25,6 +26,7 @@ export default function MoreScreen() {
   const handleLogout = async () => {
     await AsyncStorage.removeItem('token');
     dispatch({ type: 'logout' });
+    await GoogleSignin.signOut();
   };
 
   return (
@@ -33,7 +35,7 @@ export default function MoreScreen() {
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Thêm</Text>
-          <TouchableOpacity style={styles.notificationButton}>
+          <TouchableOpacity>
             <SimpleLineIcons name="bell" size={24} color="black" />
           </TouchableOpacity>
         </View>
@@ -56,7 +58,9 @@ export default function MoreScreen() {
                 ) : (
                   <Image source={require('../../../assets/img/user.png')} style={styles.avatar} />
                 )}
-                <Text style={styles.profileText}>{user.current_user.username}</Text>
+                <Text style={styles.profileText}>
+                  {user.current_user.full_name || user.current_user.username}
+                </Text>
               </>
             ) : (
               <>
@@ -65,15 +69,6 @@ export default function MoreScreen() {
               </>
             )}
           </TouchableOpacity>
-
-          <SectionContainer title="Quản lý">
-            <SectionItem title="Đơn mua">
-              <MaterialCommunityIcons name="golf-cart" size={25} style={styles.listItemIcon} />
-            </SectionItem>
-            <SectionItem title="Đơn bán">
-              <MaterialCommunityIcons name="golf-cart" size={25} style={styles.listItemIcon} />
-            </SectionItem>
-          </SectionContainer>
 
           {user && (
             <SectionContainer title="Tài khoản">

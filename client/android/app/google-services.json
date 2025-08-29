@@ -1,26 +1,44 @@
 {
   "project_info": {
-    "project_number": "207074955516",
-    "project_id": "lostandfound-b791b",
-    "storage_bucket": "lostandfound-b791b.firebasestorage.app"
+    "project_number": "766873287455",
+    "project_id": "lostandfound-36d4c",
+    "storage_bucket": "lostandfound-36d4c.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:207074955516:android:85166b4303fe2e98c48779",
+        "mobilesdk_app_id": "1:766873287455:android:4991552e0f2d2600834e2a",
         "android_client_info": {
-          "package_name": "com.nnh.app"
+          "package_name": "com.nnh.code"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "766873287455-9okhgdk9j4frbl0vobb6j2fgprck8o26.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.nnh.code",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "766873287455-ejcno1nu4e0sqh13e0egnol3faa9j9hq.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
-          "current_key": "AIzaSyBlIGIA008WuTxPnlMofOoXvIPPIsZyb8c"
+          "current_key": "AIzaSyA7r2U5AC9k_9FnOwCo6TWpsUTeZf7jxRU"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "766873287455-ejcno1nu4e0sqh13e0egnol3faa9j9hq.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
