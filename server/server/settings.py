@@ -15,6 +15,7 @@ from decouple import config
 import os
 import firebase_admin
 from firebase_admin import credentials
+from corsheaders.defaults import default_headers
 
 cred = credentials.Certificate("/Users/nhathung/Documents/workspace/Do_An_Nganh/Tim_Do_That_Lac/server/dothatlac/config/lostfound-3b607-firebase-adminsdk-fbsvc-abb494d97f.json")
 firebase_admin.initialize_app(cred)
@@ -32,7 +33,8 @@ SECRET_KEY = config('SECRET_KEY')
 DEBUG = True
 
 ALLOWED_HOSTS = [
-    '*'
+    '*',
+    'http://localhost:5173'
 ]
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
@@ -68,6 +70,9 @@ MIDDLEWARE = [
 ]
 
 CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    "ngrok-skip-browser-warning",
+]
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (

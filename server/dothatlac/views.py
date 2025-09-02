@@ -4,18 +4,15 @@ from rest_framework import viewsets, generics
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework.views import APIView
-from .models import User, Post, PostImage, ChatRoom, Tag, Category
+from .models import User, Post, PostImage, ChatRoom, Tag, Category, FCMToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.tokens import RefreshToken
 from cloudinary import uploader
-from .serializers.category_serializer import CategorySerializer
-from .serializers.chat_room_serializer import ChatRoomSerializer
-from .serializers.post_serializer import PostSerializer, PostImageSerializer
-from .serializers.tag_serializer import TagSerializer
-from .serializers.user_serializer import UserRegistrationSerializers, UserPostSerializer
-from .serializers.auth_serializer import MyTokenObtainPairSerializer
+from .serializers import (MyTokenObtainPairSerializer, CategorySerializer, ChatRoomSerializer,
+                          PostSerializer, PostImageSerializer, TagSerializer,
+                          UserRegistrationSerializers, UserPostSerializer)
 from rest_framework import status
 import requests
 from PIL import Image
@@ -27,12 +24,34 @@ from google.auth.transport import requests as requests_google
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
 
+class AdminPostView(viewsets.ReadOnlyModelViewSet):
+    queryset = Post.objects.all()
+    serializer_class = PostSerializer
+    permission_classes = [IsAdminUser]
+
+    @action(methods=['patch'], detail=True, url_path='approve', permission_classes=[IsAdminUser])
+    def approve(self, request, pk=None):
+        post = self.get_object()
+        post.status = 'approved'
+        post.save(update_fields=['status'])
+        return Response({'ok': True}, status=status.HTTP_200_OK)
+
+    @action(methods=['patch'], detail=True, url_path='reject', permission_classes=[IsAdminUser])
+    def reject(self, request, pk=None):
+        post = self.get_object()
+        # reason = request.data.get('reason')
+        post.status = 'rejected'
+        post.save(update_fields=['status'])
+        # optional: lưu reason vào field/ bảng audit
+        return Response({'ok': True}, status=status.HTTP_200_OK)
+
 class SaveFCMTokenView(APIView):
     def post(self, request):
         token = request.data.get("token")
+        platform = request.data.get('platform')
         user = request.user
         if token:
-            Device.objects.update_or_create(user=user, defaults={"token": token})
+            FCMToken.objects.update_or_create(token=token, defaults={'user': user, 'platform': platform})
             return Response({"message": "Token saved"}, status=status.HTTP_200_OK)
         return Response({"error": "Token missing"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -127,7 +146,7 @@ class PostView(viewsets.ViewSet, generics.CreateAPIView, generics.RetrieveAPIVie
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def create(self, request, *args, **kwargs):
-        data = request.data.copy()
+        data = request.data
 
         # Ép các field FK sang int
         user_id = int(data.get('user_id')) if data.get('user_id') else None
@@ -209,14 +228,13 @@ class PostView(viewsets.ViewSet, generics.CreateAPIView, generics.RetrieveAPIVie
 
     def get_queryset(self):
         queryset = Post.objects
-
-        post_type = self.request.query_params.get('type')
         kw = self.request.query_params.get('kw')
         category = self.request.query_params.get('category')
         city = self.request.query_params.get('city')
+        st = self.request.query_params.get('st')
 
-        if post_type:
-            queryset = queryset.filter(type=post_type)
+        if st:
+            queryset = queryset.filter(status__iexact=st)
 
         if kw:
             queryset = queryset.filter(Q(title__icontains=kw) | Q(description__icontains=kw))

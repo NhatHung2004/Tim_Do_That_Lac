@@ -45,6 +45,8 @@ const PostDetail = () => {
     fetchPostData(); // Lấy dữ liệu bài đăng chi tiết từ API
   }, []);
 
+  console.log(postData);
+
   const images = postData.images || []; // Đảm bảo images là mảng, tránh lỗi khi không có dữ liệu
   const user_post = postData.user || {}; // Đảm bảo user là đối tượng, tránh lỗi khi không có dữ liệu
 
@@ -150,16 +152,18 @@ const PostDetail = () => {
 
       {/* Footer */}
       <View style={styles.footer}>
-        {user.current_user.id === user_post.id ? (
+        {user?.current_user.id === user_post.id ? (
           <TouchableOpacity style={[styles.footerButton, styles.chatButton]}>
             <Text style={[styles.footerButtonText, styles.chatButtonText]}>Chỉnh sửa bài đăng</Text>
           </TouchableOpacity>
         ) : (
           <>
-            <TouchableOpacity style={[styles.footerButton, styles.callButton]}>
-              <Ionicons name="call-outline" size={20} color="#3B71F3" />
-              <Text style={[styles.footerButtonText, styles.callButtonText]}>Gọi</Text>
-            </TouchableOpacity>
+            {postData.phone && (
+              <TouchableOpacity style={[styles.footerButton, styles.callButton]}>
+                <Ionicons name="call-outline" size={20} color="#3B71F3" />
+                <Text style={[styles.footerButtonText, styles.callButtonText]}>Gọi</Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
               style={[styles.footerButton, styles.chatButton]}
               onPress={() => {

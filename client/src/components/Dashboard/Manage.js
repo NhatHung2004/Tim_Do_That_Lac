@@ -26,6 +26,15 @@ export default function ManageScreen() {
     }
   };
 
+  useFocusEffect(() => {
+    dataPosts.map(p => {
+      if (p.status !== 'processing') {
+        setRefresh(true);
+        return;
+      }
+    });
+  });
+
   const handleDeleted = post_id => {
     setDataPosts(prev => prev.filter(p => p.id !== post_id));
     setRefresh(true);
@@ -34,7 +43,7 @@ export default function ManageScreen() {
   useFocusEffect(
     useCallback(() => {
       fetchPostsData();
-    }, []),
+    }, [user]),
   );
 
   return (

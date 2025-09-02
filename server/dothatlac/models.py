@@ -24,14 +24,20 @@ class User(AbstractUser):
 
 class FCMToken(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='fcm_tokens')
-    token = models.CharField(max_length=255, unique=True)
-    device_type = models.CharField(max_length=50, null=True, blank=True)  # android / ios / web
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    is_active = models.BooleanField(default=True)
+    token = models.CharField(max_length=255)  # không để unique
+    device_type = models.CharField(
+        max_length=20,
+        choices=[('android', 'Android'), ('ios', 'iOS'), ('web', 'Web')],
+        null=True,
+        blank=True
+    )
+    last_used = models.DateTimeField(auto_now=True)  # lần cuối token được xác nhận
+
+    class Meta:
+        unique_together = ('user', 'token')  # 1 user có thể có nhiều device, nhưng không lưu trùng token
 
     def __str__(self):
-        return f"FCMToken({self.user.username}, {self.device_type})"
+        return f"FCMToken(user={self.user.username}, device={self.device_type})"
 
 class Category(models.Model):
     name = models.CharField(max_length=200)

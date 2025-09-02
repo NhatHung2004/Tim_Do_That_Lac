@@ -1,10 +1,6 @@
 import axios from 'axios';
-import Constants from 'expo-constants';
 import { NGROK_URL } from '@env';
 
-// 192.168.144.250
-// 192.168.1.10
-// const NGROK_URL = Constants.expoConfig.extra.NGROK_URL;
 const BASE_URL = `${NGROK_URL}/api/`;
 
 export const endpoints = {

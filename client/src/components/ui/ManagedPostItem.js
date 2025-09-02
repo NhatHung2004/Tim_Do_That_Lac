@@ -34,9 +34,25 @@ export default function ManagedPostItem({ title, id, status, images, type, onDel
     <View style={styles.container}>
       {/* Tabs */}
       <View style={styles.tabRow}>
-        <TouchableOpacity style={[styles.tab, styles.activeTab]}>
-          <Text style={[styles.tabText, styles.activeTabText]}>
-            {status === 'processing' ? 'Chờ duyệt' : ''}
+        <TouchableOpacity
+          style={[
+            styles.tab,
+            styles.activeTab,
+            status === 'rejected' && { borderBottomColor: 'red' },
+          ]}
+        >
+          <Text
+            style={[
+              styles.tabText,
+              styles.activeTabText,
+              status === 'rejected' && { color: 'red' },
+            ]}
+          >
+            {status === 'processing'
+              ? 'Chờ duyệt'
+              : status === 'rejected'
+                ? 'Từ chối'
+                : 'Chấp nhận'}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.tab}>

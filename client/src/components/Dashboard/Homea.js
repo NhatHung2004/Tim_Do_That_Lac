@@ -12,8 +12,8 @@ import {
 
 import Colors from '../../constants/colors';
 import PostItem from '../ui/PostItem';
-import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
-import Api, { AuthApi, endpoints } from '../../configs/Api';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import Api, { endpoints } from '../../configs/Api';
 import { Ionicons } from '@expo/vector-icons';
 import { MyRefreshContext, MyUserContext } from '../../configs/MyContext';
 import axios from 'axios';
@@ -25,7 +25,6 @@ export default function HomeScreen() {
   const [searchText, setSearchText] = useState('');
   const [categories, setCategories] = useState([]);
   const [provinces, setProvinces] = useState([]);
-  const [loading, setLoading] = useState(false);
   const navigation = useNavigation();
   const [refresh, setRefresh] = useContext(MyRefreshContext);
 
@@ -65,6 +64,7 @@ export default function HomeScreen() {
     try {
       const response = await Api.get(endpoints['posts'], {
         params: {
+          st: 'approved',
           kw: searchText, // Thêm từ khóa tìm kiếm vào tham số
         },
       });
@@ -82,10 +82,8 @@ export default function HomeScreen() {
   // lấy dữ liệu bài đăng mỗi khi focus screen
   useFocusEffect(
     useCallback(() => {
-      if (refresh) {
-        fetchPostsData();
-        setRefresh(false);
-      }
+      if (refresh) fetchPostsData();
+      setRefresh(false);
     }, [refresh]),
   );
 
