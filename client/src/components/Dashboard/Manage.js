@@ -1,5 +1,5 @@
-import React, { useContext, useCallback, useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Platform, TouchableOpacity, FlatList } from 'react-native';
+import React, { useContext, useCallback, useState } from 'react';
+import { View, Text, TouchableOpacity, FlatList } from 'react-native';
 import Colors from '../../constants/colors';
 import { Ionicons } from '@expo/vector-icons';
 import ManagedPostItem from '../ui/ManagedPostItem';
@@ -7,6 +7,7 @@ import { MyRefreshContext, MyUserContext } from '../../configs/MyContext';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthApi, endpoints } from '../../configs/Api';
+import styles from '../../styles/ManageStyle';
 
 export default function ManageScreen() {
   const navigation = useNavigation();
@@ -87,31 +88,3 @@ export default function ManageScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-
-  // Header
-  headerContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    backgroundColor: Colors.primary,
-    width: '100%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 4,
-    zIndex: 10,
-    paddingBottom: Platform.OS === 'ios' ? 0 : 10,
-    paddingTop: Platform.OS === 'ios' ? 40 : 35,
-  },
-  headerText: {
-    color: Colors.black,
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-});

@@ -2,9 +2,7 @@ import { useState, useRef, useEffect, useContext } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
-  Dimensions,
   StatusBar,
   TouchableOpacity,
   Alert,
@@ -12,6 +10,7 @@ import {
   FlatList,
   SafeAreaView,
   Platform,
+  TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Colors from '../../constants/colors';
@@ -20,17 +19,33 @@ import Api, { endpoints } from '../../configs/Api';
 import { useRoute } from '@react-navigation/native';
 import { MyUserContext } from '../../configs/MyContext';
 import FormatDate from '../../utils/FormatDate';
-
-const { width } = Dimensions.get('window');
+import styles from '../../styles/PostDetailStyle';
 
 const PostDetail = () => {
   const user = useContext(MyUserContext);
 
+  const commentsData = [
+    {
+      id: '1',
+      name: 'Thanh Minh Vũ',
+      content: 'ádasdasd',
+      time: '5 ngày trước',
+    },
+    {
+      id: '2',
+      name: 'Nhi Lâm',
+      content: 'lkslkdhflh',
+      time: '2 tuần trước',
+    },
+  ];
+
   const navigation = useNavigation();
   const route = useRoute();
   const [postData, setPostData] = useState({});
+  const [comments, setComments] = useState(commentsData);
+  const [newComment, setNewComment] = useState('');
 
-  const { postID } = route.params; // Lấy postID từ params
+  const { postID } = route.params; // Get postID from params
 
   useEffect(() => {
     const fetchPostData = async () => {
@@ -42,13 +57,11 @@ const PostDetail = () => {
         Alert.alert('Lỗi', 'Không thể tải dữ liệu bài đăng');
       }
     };
-    fetchPostData(); // Lấy dữ liệu bài đăng chi tiết từ API
+    fetchPostData(); // Fetch detail post api
   }, []);
 
-  console.log(postData);
-
-  const images = postData.images || []; // Đảm bảo images là mảng, tránh lỗi khi không có dữ liệu
-  const user_post = postData.user || {}; // Đảm bảo user là đối tượng, tránh lỗi khi không có dữ liệu
+  const images = postData.images || [];
+  const user_post = postData.user || {};
 
   const [activeIndex, setActiveIndex] = useState(0);
   const flatListRef = useRef(null);
@@ -63,6 +76,18 @@ const PostDetail = () => {
   const viewabilityConfig = useRef({
     itemVisiblePercentThreshold: 50,
   }).current;
+
+  const addComment = () => {
+    if (newComment.trim() === '') return;
+    const newItem = {
+      id: (comments.length + 1).toString(),
+      name: 'Bạn',
+      content: newComment,
+      time: 'Vừa xong',
+    };
+    setComments([newItem, ...comments]);
+    setNewComment('');
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -148,12 +173,57 @@ const PostDetail = () => {
             {postData.description || 'Chưa có mô tả cho bài đăng này.'}
           </Text>
         </View>
+
+        {/** Comment  */}
+        <View style={styles.descriptionSection}>
+          <Text style={styles.title}>Bình luận</Text>
+
+          <ScrollView style={styles.scrollArea} contentContainerStyle={{ paddingBottom: 10 }}>
+            {comments.length === 0 ? (
+              <Text style={styles.emptyText}>Chưa có bình luận</Text>
+            ) : (
+              comments.map(item => (
+                <View key={item.id} style={styles.commentContainer}>
+                  <View style={styles.avatar}>
+                    <Text style={styles.avatarText}>{item.name[0]}</Text>
+                  </View>
+                  <View style={styles.commentBox}>
+                    <Text style={styles.userName}>{item.name}</Text>
+                    <Text style={styles.commentText}>{item.content}</Text>
+                    <View style={styles.footerComment}>
+                      <Text style={styles.reply}>Trả lời</Text>
+                      <Text style={styles.time}>{item.time}</Text>
+                    </View>
+                  </View>
+                </View>
+              ))
+            )}
+          </ScrollView>
+
+          <View style={styles.inputContainer}>
+            <View style={styles.inputAvatar}>
+              <Text style={styles.avatarText}>N</Text>
+            </View>
+            <TextInput
+              style={styles.input}
+              placeholder="Bình luận..."
+              value={newComment}
+              onChangeText={setNewComment}
+            />
+            <TouchableOpacity onPress={addComment}>
+              <Text style={styles.send}>➤</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </ScrollView>
 
       {/* Footer */}
       <View style={styles.footer}>
         {user?.current_user.id === user_post.id ? (
-          <TouchableOpacity style={[styles.footerButton, styles.chatButton]}>
+          <TouchableOpacity
+            style={[styles.footerButton, styles.chatButton]}
+            onPress={() => navigation.navigate('edit_post', { post_id: postData.id })}
+          >
             <Text style={[styles.footerButtonText, styles.chatButtonText]}>Chỉnh sửa bài đăng</Text>
           </TouchableOpacity>
         ) : (
@@ -183,202 +253,5 @@ const PostDetail = () => {
     </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f2f2f2',
-  },
-  scrollViewContent: {
-    paddingTop: Platform.OS === 'ios' ? 90 : 70,
-    paddingBottom: 80,
-    marginTop: Platform.OS === 'ios' ? -25 : 25,
-  },
-  // --- Header Styles ---
-  headerContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 15,
-    paddingTop: Platform.OS === 'ios' ? 50 : StatusBar.currentHeight + 10,
-    paddingBottom: 10,
-    backgroundColor: '#fff',
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#eee',
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-    backgroundColor: Colors.primary,
-  },
-  iconButton: {
-    padding: 5,
-  },
-  rightIcons: {
-    flexDirection: 'row',
-  },
-  // --- ProductImageCarousel Styles ---
-  carouselContainer: {
-    width: '100%',
-    height: width * 0.9,
-    backgroundColor: '#f0f0f0',
-    position: 'relative',
-  },
-  productImage: {
-    width: width,
-    height: '100%',
-  },
-  pagination: {
-    position: 'absolute',
-    bottom: 10,
-    right: 15,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    borderRadius: 15,
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-  },
-  paginationText: {
-    color: '#fff',
-    fontSize: 12,
-  },
-  // --- Product Details Section Styles ---
-  detailsSection: {
-    backgroundColor: '#fff',
-    padding: 15,
-    marginVertical: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#eee',
-  },
-  productName: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 5,
-    color: '#333',
-  },
-  locationContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 5,
-  },
-  productLocation: {
-    fontSize: 14,
-    color: '#666',
-    marginLeft: 5,
-  },
-  postedTimeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  productPostedTime: {
-    fontSize: 14,
-    color: '#666',
-    marginLeft: 5,
-  },
-  // --- SellerInfo Styles ---
-  sellerContainer: {
-    backgroundColor: '#fff',
-    padding: 15,
-    marginVertical: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#eee',
-  },
-  sellerHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  sellerAvatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    marginRight: 10,
-    borderWidth: 1,
-    borderColor: '#eee',
-  },
-  sellerDetails: {
-    flex: 1,
-  },
-  sellerName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  activeStatus: {
-    fontSize: 12,
-    color: 'gray',
-  },
-  sellerBagIcon: {
-    padding: 5,
-  },
-  // --- Description Section Styles ---
-  descriptionSection: {
-    backgroundColor: '#fff',
-    padding: 15,
-    marginVertical: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#eee',
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    color: '#333',
-  },
-  descriptionText: {
-    fontSize: 15,
-    color: '#555',
-    lineHeight: 22,
-  },
-  // --- Footer Styles ---
-  footer: {
-    flexDirection: 'row',
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 70,
-    backgroundColor: '#fff',
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingBottom: 10,
-  },
-  footerButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    borderRadius: 8,
-    marginHorizontal: 5,
-  },
-  footerButtonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginLeft: 8,
-  },
-  callButton: {
-    backgroundColor: '#fff',
-    borderColor: '#3B71F3',
-    borderWidth: 1,
-  },
-  callButtonText: {
-    color: '#3B71F3',
-  },
-  chatButton: {
-    backgroundColor: '#3B71F3',
-    borderColor: '#3B71F3',
-    borderWidth: 1,
-  },
-  chatButtonText: {
-    color: '#fff',
-  },
-});
 
 export default PostDetail;

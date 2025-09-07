@@ -6,13 +6,13 @@ from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework.views import APIView
-from .models import User, Post, PostImage, ChatRoom, Tag, Category, FCMToken
-from rest_framework_simplejwt.views import TokenObtainPairView
+from .models import User, Post, PostImage, ChatRoom, Tag, Category, FCMToken, Notification
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework_simplejwt.tokens import RefreshToken
 from cloudinary import uploader
 from .serializers import (MyTokenObtainPairSerializer, CategorySerializer, ChatRoomSerializer,
                           PostSerializer, PostImageSerializer, TagSerializer,
-                          UserRegistrationSerializers, UserPostSerializer)
+                          UserRegistrationSerializers, UserPostSerializer, NotificationSerializer)
 from rest_framework import status
 import requests
 from PIL import Image
@@ -20,9 +20,33 @@ from io import BytesIO
 from dothatlac.search_image.image_extractor import image_extractor, find_similar
 from google.oauth2 import id_token
 from google.auth.transport import requests as requests_google
+from dothatlac.utils.notification import send_approve_notification
 
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
+
+    def post(self, request, *args, **kwargs):
+        res = super().post(request, *args, **kwargs)
+        data = res.data
+        refresh = data.pop('refresh', None)
+
+        if refresh:
+            res.set_cookie(
+                key='refresh_token',
+                value=refresh,
+                httponly=True,
+                samesite='Lax',
+                path='/token/refresh/',
+            )
+
+        return res
+
+class CookieTokenRefreshView(TokenRefreshView):
+    def post(self, request, *args, **kwargs):
+        refresh = request.COOKIES.get('refresh_token')
+        if refresh:
+            request.data['refresh'] = refresh
+        return super().post(request, *args, **kwargs)
 
 class AdminPostView(viewsets.ReadOnlyModelViewSet):
     queryset = Post.objects.all()
@@ -34,6 +58,17 @@ class AdminPostView(viewsets.ReadOnlyModelViewSet):
         post = self.get_object()
         post.status = 'approved'
         post.save(update_fields=['status'])
+
+        # Create notification instance
+        Notification.objects.create(
+            title='Bài đăng đã được duyệt',
+            body=f"'{post.title}' đã được duyệt.",
+            link=post.id,
+            is_read=False,
+            user=post.user,
+        )
+
+        send_approve_notification(post.user, post)
         return Response({'ok': True}, status=status.HTTP_200_OK)
 
     @action(methods=['patch'], detail=True, url_path='reject', permission_classes=[IsAdminUser])
@@ -42,10 +77,11 @@ class AdminPostView(viewsets.ReadOnlyModelViewSet):
         # reason = request.data.get('reason')
         post.status = 'rejected'
         post.save(update_fields=['status'])
-        # optional: lưu reason vào field/ bảng audit
         return Response({'ok': True}, status=status.HTTP_200_OK)
 
 class SaveFCMTokenView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def post(self, request):
         token = request.data.get("token")
         platform = request.data.get('platform')
@@ -56,10 +92,12 @@ class SaveFCMTokenView(APIView):
         return Response({"error": "Token missing"}, status=status.HTTP_400_BAD_REQUEST)
 
 class GoogleLoginView(APIView):
+    permission_classes = [AllowAny]
+
     def post(self, request, *args, **kwargs):
         token = request.data.get('token')
         try:
-            # Xác thực idToken với Google
+            # Verify idToken with Google
             id_info = id_token.verify_oauth2_token(token, requests_google.Request())
 
             email = id_info['email']
@@ -67,10 +105,9 @@ class GoogleLoginView(APIView):
 
             user, created = User.get_or_create_user(email=email, username=username)
 
-            # Sinh JWT token
+            # Create JWT Token
             refresh = RefreshToken.for_user(user)
 
-            print(user)
             return Response({
                 'access_token': str(refresh.access_token),
                 "refresh": str(refresh),
@@ -86,6 +123,17 @@ class GoogleLoginView(APIView):
         except Exception as e:
             return Response({"error": str(e)}, status=400)
 
+class NotificationViewSet(viewsets.ModelViewSet):
+    queryset = Notification.objects.all()
+    serializer_class = NotificationSerializer
+    permission_classes = [IsAuthenticated]
+
+    @action(detail=True, methods=['patch'])
+    def mark_read(self, request, pk=None):
+        noti = self.get_object()
+        noti.is_read = True
+        noti.save(update_fields=["is_read"])
+        return Response({"ok": True}, status=status.HTTP_200_OK)
 
 class UserView(viewsets.ViewSet, generics.CreateAPIView, generics.RetrieveAPIView,
                generics.ListAPIView, generics.DestroyAPIView, generics.UpdateAPIView):
@@ -106,6 +154,13 @@ class UserView(viewsets.ViewSet, generics.CreateAPIView, generics.RetrieveAPIVie
         serializer = UserPostSerializer(user)
         return Response(serializer.data)
 
+    @action(detail=True, methods=['get'])
+    def notifications(self, request, pk=None):
+        current_user = self.get_object()
+        notifications = current_user.notifications.all()
+        serializer = NotificationSerializer(notifications, many=True)
+        return Response(serializer.data)
+
     def get_permissions(self):
         if self.request.method == 'POST':
             return [AllowAny()]
@@ -122,21 +177,21 @@ class PostView(viewsets.ViewSet, generics.CreateAPIView, generics.RetrieveAPIVie
         partial = kwargs.pop("partial", False)  # PATCH = partial update
         instance = self.get_object()
 
-        # lấy dữ liệu ảnh từ request
+        # Get images data from request
         images_data = request.FILES.getlist("images")
 
-        # update các field khác (title, description, phone, ...)
+        # update another fields (title, description, phone, ...)
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
 
-        # xử lý ảnh
+        # Handle image
         if images_data is not None:
             for img in images_data:
                 result = uploader.upload(img)
                 image_url = result['secure_url']
 
-                # Trích xuất feature từ file
+                # Extract features from file
                 response = requests.get(image_url)
                 pil_img = Image.open(BytesIO(response.content)).convert("RGB")
                 vector = image_extractor(pil_img)
@@ -148,11 +203,11 @@ class PostView(viewsets.ViewSet, generics.CreateAPIView, generics.RetrieveAPIVie
     def create(self, request, *args, **kwargs):
         data = request.data
 
-        # Ép các field FK sang int
+        # Cast FK fields to int
         user_id = int(data.get('user_id')) if data.get('user_id') else None
         category_id = int(data.get('category_id')) if data.get('category_id') else None
 
-        # Lấy object liên quan
+        # Get the related object
         try:
             user = User.objects.get(id=user_id) if user_id else None
         except User.DoesNotExist:
@@ -163,7 +218,7 @@ class PostView(viewsets.ViewSet, generics.CreateAPIView, generics.RetrieveAPIVie
         except Category.DoesNotExist:
             return Response({'error': 'Category không tồn tại'}, status=400)
 
-        # Tạo Post
+        # Create Post
         post = Post.objects.create(
             title=data.get('title', ''),
             description=data.get('description', ''),
@@ -178,21 +233,21 @@ class PostView(viewsets.ViewSet, generics.CreateAPIView, generics.RetrieveAPIVie
             category=category
         )
 
-        # Xử lý nhiều ảnh (cloudinary + image vector)
+        # Handle multiple images (cloudinary + image vector)
         images = request.FILES.getlist('images')
         for img in images:
             # upload cloudinary
             result = uploader.upload(img)
             image_url = result['secure_url']
 
-            # Trích xuất feature từ file
+            # Extract features from file
             response = requests.get(image_url)
             pil_img = Image.open(BytesIO(response.content)).convert("RGB")
             vector = image_extractor(pil_img)
 
             PostImage.objects.create(post=post, image=image_url, image_vector=vector.tolist())
 
-        # Xử lý tags
+        # Handle tags
         if request.data.get('tags'):
             tags_json = request.data.get('tags', [])
             tags = json.loads(tags_json)
@@ -205,20 +260,20 @@ class PostView(viewsets.ViewSet, generics.CreateAPIView, generics.RetrieveAPIVie
                     tag_creation = Tag.objects.create(name=tag)
                     post.tags.add(tag_creation)
 
-        # Trả về dữ liệu serialized
+        # Return serialized data
         return Response(PostSerializer(post).data, status=201)
 
     @action(detail=False, methods=['post'])
     def batch(self, request):
         ids = request.data.get('ids', [])
-        # Loại bỏ duplicate nhưng vẫn giữ nguyên thứ tự xuất hiện đầu tiên
+        # Remove duplicates but keep first appearance order
         unique_ids = list(dict.fromkeys(ids))
 
         posts = Post.objects.filter(id__in=unique_ids)
         serializer = PostSerializer(posts, many=True)
         data = serializer.data
 
-        # Map lại theo id
+        # Map again by id
         post_map = {item["id"]: item for item in data}
 
         # Giữ nguyên thứ tự unique_ids

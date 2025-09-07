@@ -7,13 +7,13 @@ import numpy as np
 from numpy.linalg import norm
 from dothatlac.models import PostImage
 
-# Lazy load: chỉ khởi tạo khi cần
+# Lazy load
 _resnet = None
 _transform = transforms.Compose([
-    transforms.Resize((224, 224)),
-    transforms.ToTensor(),
+    transforms.Resize((224, 224)), # ResNet requires this size
+    transforms.ToTensor(), # convert to tensor to multidimensional array calculation
     transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                         std=[0.229, 0.224, 0.225]),
+                         std=[0.229, 0.224, 0.225]), # help input image to be compatible with model trained on ResNet
 ])
 
 def get_model():
@@ -22,7 +22,7 @@ def get_model():
         local_weights = "/Users/nhathung/.cache/torch/hub/checkpoints/resnet50-0676ba61.pth"
         model = models.resnet50()
         model.load_state_dict(torch.load(local_weights, map_location="cpu"))
-        # Bỏ fully-connected layer cuối
+        # Remove the last fully-connected layer
         _resnet = nn.Sequential(*list(model.children())[:-1])
         _resnet.eval()
     return _resnet
@@ -34,9 +34,10 @@ def image_extractor(img: Image.Image):
         features = model(tensor).squeeze().numpy()
     return features
 
-def find_similar(query_vec, top_k=5):
+def find_similar(query_vec, top_k=5): # top_k is the number of returned items
     similarities = []
-    feature_db = PostImage.objects.exclude(image_vector__isnull=True) # lấy tất cả PostImage ngoại trừ image_vector=null
+    # Get all PostImage expect image_vector=null
+    feature_db = PostImage.objects.exclude(image_vector__isnull=True)
     for obj in feature_db:
         vec = np.array(obj.image_vector)
         sim = np.dot(query_vec, vec) / (norm(query_vec) * norm(vec))

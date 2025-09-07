@@ -17,7 +17,6 @@ import Colors from '../../constants/colors';
 import { AuthApi, endpoints } from '../../configs/Api';
 import { MyUserContext } from '../../configs/MyContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Constants from 'expo-constants';
 import { SUB_NGROK_URL } from '@env';
 
 const ChatScreen = () => {
@@ -40,7 +39,6 @@ const ChatScreen = () => {
   useEffect(() => {
     const connectWebSocKet = async () => {
       const token = await AsyncStorage.getItem('token');
-      // const SUB_NGROK_URL = Constants.expoConfig.extra.SUB_NGROK_URL;
       const socketUrl = `wss://${SUB_NGROK_URL}/ws/chat/${other_user_id}/?token=${token}`;
 
       webSocketRef.current = new WebSocket(socketUrl);

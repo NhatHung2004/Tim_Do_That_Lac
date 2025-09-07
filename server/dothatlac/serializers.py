@@ -2,7 +2,7 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework.exceptions import ValidationError
 from rest_framework.relations import PrimaryKeyRelatedField
 from rest_framework.serializers import ModelSerializer
-from dothatlac.models import PostImage, Post, User, Category, Tag, ChatRoom
+from dothatlac.models import PostImage, Post, User, Category, Tag, ChatRoom, Notification
 import re
 from rest_framework.fields import URLField
 from cloudinary import uploader
@@ -123,3 +123,9 @@ class ChatRoomSerializer(ModelSerializer):
     class Meta:
         model = ChatRoom
         fields = ['id', 'room_name', 'created_at', 'user1', 'user2']
+
+# NOTIFICATION
+class NotificationSerializer(ModelSerializer):
+    class Meta:
+        model = Notification
+        fields = ['id', 'title', 'body', 'created_at', 'user_id', 'link', 'is_read']

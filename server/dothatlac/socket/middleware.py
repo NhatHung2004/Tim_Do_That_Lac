@@ -6,7 +6,7 @@ from urllib.parse import parse_qs
 @database_sync_to_async
 def get_user_from_token(scope):
     """
-    Tìm người dùng dựa trên token được cung cấp trong query string của WebSocket.
+    Find users based on token provided in the WebSocket query string
     """
     from django.contrib.auth.models import AnonymousUser
     from rest_framework_simplejwt.tokens import AccessToken
@@ -14,10 +14,10 @@ def get_user_from_token(scope):
     from django.contrib.auth import get_user_model
 
     try:
-        # Lấy query string từ scope
+        # Get query string from scope
         query_string = parse_qs(scope["query_string"].decode("utf8"))
 
-        # Lấy token từ query string.
+        # Get token from query string
         token_key = query_string.get("token")
         print("TOKEN KEY", token_key[0])
 
@@ -34,22 +34,22 @@ def get_user_from_token(scope):
     except Exception as e:
         print(f"Error getting user from token: {e}")
 
-    return AnonymousUser()  # Trả về người dùng ẩn danh nếu không tìm thấy / xác thực được
+    return AnonymousUser()  # return Anonymous User if not found/authenticated
 
 
 class TokenAuthMiddleware:
     """
-    Middleware tùy chỉnh để xác thực người dùng dựa trên token trong query string.
+    Custom middleware to authenticate users based on token provided in the WebSocket query string
     """
 
     def __init__(self, inner):
         self.inner = inner
 
     async def __call__(self, scope, receive, send):
-        # Thiết lập scope['user'] trước khi chuyển cho middleware tiếp theo
+        # Set scope['user'] before passing to next middleware
         scope["user"] = await get_user_from_token(scope)
         return await self.inner(scope, receive, send)
 
 
-# Đây là Stack sẽ sử dụng trong asgi.py
+# This is the Stack that will be user in asgi.py
 TokenAuthMiddlewareStack = lambda inner: TokenAuthMiddleware(AuthMiddlewareStack(inner))

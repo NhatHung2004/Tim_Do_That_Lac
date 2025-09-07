@@ -4,6 +4,7 @@ from django.contrib.auth.models import AbstractUser
 class User(AbstractUser):
     full_name = models.CharField(max_length=255, null=True, blank=True)
     avatar = models.URLField(null=True, blank=True)
+    phone = models.CharField(max_length=20, null=True, blank=True)
 
     def __str__(self):
         return f'{self.first_name} {self.last_name}'
@@ -12,7 +13,6 @@ class User(AbstractUser):
     def get_or_create_user(cls, username, email):
         user = cls.objects.filter(email=email).first()
         if user:
-            # Nếu user đã tồn tại theo email -> update username nếu khác
             if user.username != username:
                 user.username = username
                 user.save(update_fields=["username"])
@@ -24,17 +24,15 @@ class User(AbstractUser):
 
 class FCMToken(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='fcm_tokens')
-    token = models.CharField(max_length=255)  # không để unique
-    device_type = models.CharField(
+    token = models.CharField(max_length=255)
+    platform = models.CharField(
         max_length=20,
-        choices=[('android', 'Android'), ('ios', 'iOS'), ('web', 'Web')],
         null=True,
         blank=True
     )
-    last_used = models.DateTimeField(auto_now=True)  # lần cuối token được xác nhận
-
+    last_used = models.DateTimeField(auto_now=True)  # Last time token was confirmed
     class Meta:
-        unique_together = ('user', 'token')  # 1 user có thể có nhiều device, nhưng không lưu trùng token
+        unique_together = ('user', 'token')  # A user has multiple devices but not save duplicate tokens
 
     def __str__(self):
         return f"FCMToken(user={self.user.username}, device={self.device_type})"
@@ -88,18 +86,18 @@ class ChatRoom(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        # Đảm bảo mỗi cặp user chỉ có một phòng chat duy nhất, không phân biệt thứ tự
+        # Ensure each pair of users has only one chat room, regardless of order
         unique_together = [['user1', 'user2']]
 
     def __str__(self):
         return f"ChatRoom: {self.name} ({self.user1.username} - {self.user2.username})"
 
-    # Phương thức để lấy hoặc tạo phòng chat giữa hai người dùng
+    # Get or create chat room
     @classmethod
     def get_or_create_room(cls, user_a, user_b):
-        # Đảm bảo user_a.id < user_b.id để tên phòng luôn nhất quán
+        # Make sure user_a.id < user_b.id to keep room names consistent
         if user_a.id > user_b.id:
-            user_a, user_b = user_b, user_a # Hoán đổi nếu user_a.id lớn hơn
+            user_a, user_b = user_b, user_a # Swap if user_a greater
 
         room_name = f'private_{user_a.id}_{user_b.id}'
         room, created = cls.objects.get_or_create(
@@ -129,3 +127,25 @@ class Message(models.Model):
             'content': self.content,
             'timestamp': self.timestamp.isoformat(),
         }
+
+class Comment(models.Model):
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='comments')
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='comments')
+
+    class Meta:
+        ordering = ['created_at']
+
+class Notification(models.Model):
+    title = models.CharField(max_length=255)
+    body = models.TextField()
+    link = models.CharField(max_length=255, null=True, blank=True)
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
+
+    class Meta:
+        ordering = ['created_at']

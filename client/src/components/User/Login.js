@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, StyleSheet, Image, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, Image, Alert } from 'react-native';
 import Colors from '../../constants/colors';
 import { useContext, useEffect, useState } from 'react';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -12,6 +12,7 @@ import AuthHeader from '../ui/AuthHeader';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import MyLoading from '../ui/MyLoading';
 import { WEB_CLIENT_ID } from '@env';
+import styles from '../../styles/LoginStyle';
 
 export default function LoginScreen() {
   const [username, setUsername] = useState('');
@@ -22,12 +23,14 @@ export default function LoginScreen() {
   const route = useRoute();
   const dispatch = useContext(MyDispatchContext);
 
+  // cấu hình firebase google
   useEffect(() => {
     GoogleSignin.configure({
       webClientId: WEB_CLIENT_ID,
     });
   }, []);
 
+  // đăng nhập bằng google
   const googleLogin = async () => {
     try {
       setLoadingGoogle(true);
@@ -43,6 +46,7 @@ export default function LoginScreen() {
       });
 
       await AsyncStorage.setItem('token', res.data.access_token);
+      await AsyncStorage.setItem('refresh', res.data.refresh);
 
       const current_user = res.data.user;
       dispatch({ type: 'login', payload: { current_user } });
@@ -63,6 +67,7 @@ export default function LoginScreen() {
     }
   };
 
+  // xử lý login bằng username/pasword
   const handleLogin = async () => {
     setLoading(true);
 
@@ -73,6 +78,7 @@ export default function LoginScreen() {
       });
 
       const token = response.data.access;
+      const refresh = response.data.refresh;
       const current_user = response.data.user;
 
       console.log('asdasd', current_user);
@@ -91,6 +97,7 @@ export default function LoginScreen() {
       } else navigation.goBack();
     } catch (error) {
       setLoading(false);
+      console.log(error);
       Alert.alert('Đăng nhập không thành công', 'Sai tài khoản hoặc mật khẩu', [{ text: 'OK' }]);
     } finally {
       setLoading(false);
@@ -166,95 +173,3 @@ export default function LoginScreen() {
     </>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFF',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 30,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 30,
-    alignSelf: 'flex-start',
-  },
-  forgotPassword: {
-    color: Colors.link,
-    marginBottom: 20,
-    marginTop: 5,
-    fontSize: 14,
-  },
-  separatorContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: '100%',
-    marginBottom: 20,
-  },
-  line: {
-    flex: 1,
-    height: 1,
-    backgroundColor: Colors.gray,
-  },
-  separatorText: {
-    marginHorizontal: 10,
-    color: '#888',
-    fontSize: 14,
-  },
-  socialButtonsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    width: '100%',
-    marginBottom: 30,
-  },
-  socialButton: {
-    width: '80%',
-    height: '50',
-    borderWidth: 1,
-    borderColor: Colors.gray,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  socialIcon: {
-    width: 30,
-    height: 30,
-    resizeMode: 'contain',
-  },
-  registerLinkContainer: {
-    flexDirection: 'row',
-    marginBottom: 30,
-  },
-  registerText: {
-    fontSize: 15,
-    color: '#555',
-  },
-  registerLink: {
-    fontSize: 15,
-    color: Colors.link,
-    fontWeight: 'bold',
-  },
-  footerLinksContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    marginTop: 'auto',
-    marginBottom: 10,
-  },
-  footerLink: {
-    fontSize: 9,
-    color: '#888',
-    marginHorizontal: 5,
-  },
-  developedByContainer: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  developedByText: {
-    fontSize: 12,
-    color: '#888',
-    marginBottom: 10,
-  },
-});

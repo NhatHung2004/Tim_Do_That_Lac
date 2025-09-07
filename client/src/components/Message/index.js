@@ -29,43 +29,6 @@ const MessagesScreen = () => {
   const user = useContext(MyUserContext);
   const [chatData, setChatData] = useState([]); // Mảng chứa toàn bộ tin nhắn của current_user
 
-  // const chatData = [
-  //   {
-  //     id: '1',
-  //     user: {
-  //       name: 'Quân Nguyễn',
-  //       avatar: 'https://via.placeholder.com/50/FFD700/000000?text=QN', // Gold placeholder
-  //       lastActive: '16:02', // Or '1 ngày trước' for specific chat detail
-  //     },
-  //     lastMessage: 'Cho Thuê Nhà Riêng tại đường Tân...',
-  //     productThumbnail: 'https://via.placeholder.com/60Colors.white0/000000?text=SP', // Green placeholder
-  //     type: 'normal_chat',
-  //   },
-  //   {
-  //     id: '2',
-  //     type: 'promo_message', // Special type for promotional content
-  //     promo: {
-  //       image: 'https://via.placeholder.com/200/FF0000/FFFFFF?text=SHOPEEFOOD_AD', // Red background
-  //       title: 'ShopeeFood',
-  //       subtitle: 'Đã cài đặt',
-  //       buttonText: 'Mở',
-  //       promoValue: '99.000đ', // For the 'Giảm đến' text
-  //     },
-  //   },
-  //   {
-  //     id: '3',
-  //     user: {
-  //       name: 'Nguyễn Văn A',
-  //       avatar: 'https://via.placeholder.com/50/87CEEB/000000?text=NVA', // SkyBlue placeholder
-  //       lastActive: 'Hôm qua',
-  //     },
-  //     lastMessage: 'Bạn có giao hàng tận nơi không?',
-  //     productThumbnail: 'https://via.placeholder.com/60/DAA520/000000?text=SP2', // Goldenrod placeholder
-  //     type: 'normal_chat',
-  //   },
-  //   // Add more chat items as needed
-  // ];
-
   useEffect(() => {
     const fetchData = async () => {
       const token = await AsyncStorage.getItem('token');
@@ -178,7 +141,7 @@ const MessagesScreen = () => {
         {chatData.length <= 0 ? (
           <View style={styles.emptyStateContainer}>
             <Image
-              source={require('../../../assets/img/chat.jpeg')} // Đảm bảo đường dẫn này đúng
+              source={require('../../../assets/img/chat.jpeg')}
               style={styles.emptyStateImage}
               resizeMode="contain"
             />

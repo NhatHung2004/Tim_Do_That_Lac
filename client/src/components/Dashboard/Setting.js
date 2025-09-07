@@ -1,14 +1,4 @@
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Image,
-  SafeAreaView, // Để xử lý phần notch/status bar
-  ScrollView,
-  Platform, // Để có thể cuộn nếu nội dung dài
-} from 'react-native';
-import Colors from '../../constants/colors';
+import { View, Text, TouchableOpacity, Image, SafeAreaView, ScrollView } from 'react-native';
 import { MaterialCommunityIcons, SimpleLineIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import SectionContainer from '../ui/SectionContainer';
@@ -17,6 +7,7 @@ import { MyUserContext, MyDispatchContext } from '../../configs/MyContext';
 import { useContext } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import styles from '../../styles/SettingStyle';
 
 export default function MoreScreen() {
   const navigation = useNavigation();
@@ -88,61 +79,3 @@ export default function MoreScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: Colors.primary,
-  },
-  container: {
-    flex: 1,
-    backgroundColor: '#F2F2F2',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 15,
-    paddingTop: Platform.OS === 'ios' ? 15 : 40,
-    paddingBottom: 10,
-    backgroundColor: Colors.primary,
-    borderBottomWidth: 0,
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  notificationIcon: {
-    width: 24,
-    height: 24,
-    tintColor: '#333',
-  },
-  profileSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFF',
-    paddingVertical: 20,
-    paddingHorizontal: 15,
-    marginTop: 10,
-    marginBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.gray,
-  },
-  avatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 25,
-    marginRight: 15,
-  },
-  profileText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginLeft: 10,
-  },
-  listItemIcon: {
-    marginRight: 15,
-    tintColor: '#555', // Màu icon mặc định
-  },
-});

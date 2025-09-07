@@ -13,14 +13,20 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from pathlib import Path
 from decouple import config
 import os
+import json
 import firebase_admin
 from firebase_admin import credentials
 from corsheaders.defaults import default_headers
 
-cred = credentials.Certificate("/Users/nhathung/Documents/workspace/Do_An_Nganh/Tim_Do_That_Lac/server/dothatlac/config/lostfound-3b607-firebase-adminsdk-fbsvc-abb494d97f.json")
-firebase_admin.initialize_app(cred)
-
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+firebase_key_json = config('FIREBASE_KEY_JSON')
+
+# Convert JSON string into dict
+cred_dict = json.loads(firebase_key_json)
+
+cred = credentials.Certificate(cred_dict)
+firebase_admin.initialize_app(cred)
 
 
 # Quick-start development settings - unsuitable for production
@@ -69,7 +75,18 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "https://0d8ee37c2f52.ngrok-free.app"
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173",
+    "https://0d8ee37c2f52.ngrok-free.app"
+]
+
 CORS_ALLOW_HEADERS = list(default_headers) + [
     "ngrok-skip-browser-warning",
 ]
@@ -78,21 +95,21 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
-    # 'DEFAULT_PERMISSION_CLASSES': (
-    #         'rest_framework.permissions.IsAuthenticated',  # Mặc định bắt buộc xác thực
-    # ),
+    'DEFAULT_PERMISSION_CLASSES': (
+            'rest_framework.permissions.IsAuthenticated',  # Authentication required by default
+    ),
 }
 
 from datetime import timedelta
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),  # Thời gian sống của Access Token (mặc định là 5 phút)
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),   # Thời gian sống của Refresh Token (mặc định là 1 ngày)
-    "ROTATE_REFRESH_TOKENS": False,  # True nếu bạn muốn refresh token tạo ra refresh token mới
-    "BLACKLIST_AFTER_ROTATION": False, # True nếu bạn muốn blacklist refresh token cũ sau khi rotate
-    "UPDATE_LAST_LOGIN": False, # True nếu bạn muốn cập nhật trường last_login của người dùng khi token được làm mới
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),  # Access Token lifetime (default is 30 minutes)
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=2),   # Refresh Token lifetime (default is 2 days)
+    "ROTATE_REFRESH_TOKENS": True,  # True when you want the refresh token generate new refresh token
+    "BLACKLIST_AFTER_ROTATION": True, # True when you want the blacklist to refresh old tokens after rotate
+    "UPDATE_LAST_LOGIN": False,
 
-    "ALGORITHM": "HS256", # Thuật toán ký token
-    "SIGNING_KEY": config('SECRET_KEY'), # Mặc định là settings.SECRET_KEY, bạn có thể override
+    "ALGORITHM": "HS256", # Token signing algorithm
+    "SIGNING_KEY": config('SECRET_KEY'),
     "VERIFYING_KEY": None,
     "AUDIENCE": None,
     "ISSUER": None,
@@ -141,7 +158,7 @@ CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
-            "hosts": [('127.0.0.1', 6379)], # Địa chỉ Redis
+            "hosts": [('127.0.0.1', 6379)], # Redis address
         },
     },
 }

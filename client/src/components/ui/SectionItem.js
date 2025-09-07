@@ -22,7 +22,7 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.gray,
   },
   listItemText: {
-    flex: 1, // Để chữ chiếm hết không gian còn lại
+    flex: 1,
     fontSize: 16,
     color: '#333',
   },

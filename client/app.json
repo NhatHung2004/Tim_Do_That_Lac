@@ -1,44 +1,4 @@
 {
-  "expo": {
-    "name": "client",
-    "slug": "client",
-    "version": "1.0.0",
-    "orientation": "portrait",
-    "icon": "./assets/img/user.png",
-    "userInterfaceStyle": "light",
-    "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/img/user.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
-    "ios": {
-      "supportsTablet": true,
-      "infoPlist": {
-        "NSPhotoLibraryUsageDescription": "Cho phép $(PRODUCT_NAME) truy cập thư viện ảnh của bạn để chọn ảnh.",
-        "NSCameraUsageDescription": "Cho phép $(PRODUCT_NAME) truy cập camera để chụp ảnh.",
-        "NSMicrophoneUsageDescription": "Cho phép $(PRODUCT_NAME) truy cập microphone để quay video."
-      },
-      "bundleIdentifier": "com.anonymous.client"
-    },
-    "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/img/user.png",
-        "backgroundColor": "#ffffff"
-      },
-      "edgeToEdgeEnabled": true,
-      "permissions": ["CAMERA", "READ_EXTERNAL_STORAGE", "WRITE_EXTERNAL_STORAGE"],
-      "package": "com.nnh.dan"
-    },
-    "web": {
-      "favicon": "./assets/img/user.png"
-    },
-    "extra": {
-      "eas": {
-        "projectId": "e4cbbacb-bb13-4f87-9cad-7f6829a3a22e"
-      },
-      "NGROK_URL": "https://54689bea9ea6.ngrok-free.app",
-      "SUB_NGROK_URL": "54689bea9ea6.ngrok-free.app"
-    }
-  }
+  "name": "main",
+  "displayName": "LostFound"
 }

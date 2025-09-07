@@ -1,6 +1,6 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Home, BarChart2, LogOut, CheckCircle, Trash2 } from 'lucide-react';
+import { Home, BarChart2, LogOut, CheckCircle, Trash2, RefreshCcw } from 'lucide-react';
 import { MyDispatchContext, MyUserContext } from '../config/MyContext';
 import { useNavigate } from 'react-router-dom';
 import { AuthApi, endpoints } from '../config/Api';
@@ -9,6 +9,7 @@ export default function AdminDashboard() {
   const [posts, setPosts] = useState([]);
   const [activeTab, setActiveTab] = useState('posts');
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   const current_user = useContext(MyUserContext);
   const dispatch = useContext(MyDispatchContext);
@@ -26,11 +27,14 @@ export default function AdminDashboard() {
 
   const fetchPosts = async () => {
     try {
+      setLoading(true);
       const token = localStorage.getItem('token');
       const res = await AuthApi(token).get(endpoints['posts']);
       setPosts(res.data);
     } catch (err) {
       console.error(err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -120,62 +124,82 @@ export default function AdminDashboard() {
       <main className="flex-1 p-8 space-y-10">
         {activeTab === 'posts' && (
           <section>
-            <h2 className="text-xl font-semibold text-green-700 mb-4">Danh sách bài đăng</h2>
+            {/* Tiêu đề + nút Refresh */}
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-green-700">Danh sách bài đăng</h2>
+              <button
+                onClick={fetchPosts}
+                disabled={loading}
+                className={`flex items-center gap-2 px-4 py-2 rounded text-white transition ${
+                  loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'
+                }`}
+              >
+                <RefreshCcw size={18} className={loading ? 'animate-spin' : ''} />
+                {loading ? 'Đang tải...' : 'Làm mới'}
+              </button>
+            </div>
+
             <div className="overflow-x-auto bg-white shadow rounded-lg">
-              <table className="min-w-full text-sm">
-                <thead className="bg-green-600 text-white">
-                  <tr>
-                    <th className="px-4 py-3 text-left">ID</th>
-                    <th className="px-4 py-3 text-left">Tiêu đề</th>
-                    <th className="px-4 py-3 text-left">Trạng thái</th>
-                    <th className="px-4 py-3 text-left">Hành động</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {posts.map((post) => (
-                    <tr
-                      key={post.id}
-                      className="border-b last:border-0 hover:bg-gray-50 cursor-pointer"
-                      onClick={() => navigate(`/posts/${post.id}`)} // 👉 click row sang chi tiết
-                    >
-                      <td className="px-4 py-2">{post.id}</td>
-                      <td className="px-4 py-2">{post.title}</td>
-                      <td className="px-4 py-2">
-                        <span
-                          className={`px-2 py-1 rounded text-xs font-medium ${
-                            post.status === 'Pending'
-                              ? 'bg-yellow-100 text-yellow-700'
-                              : post.status === 'Approved'
-                                ? 'bg-green-100 text-green-700'
-                                : 'bg-red-100 text-red-700'
-                          }`}
-                        >
-                          {post.status}
-                        </span>
-                      </td>
-                      <td
-                        className="px-4 py-2 space-x-2 flex"
-                        onClick={(e) => e.stopPropagation()} // 👉 chặn khi click icon không bị navigate
-                      >
-                        {post.status === 'Pending' && (
-                          <CheckCircle
-                            size={20}
-                            className="text-green-600 cursor-pointer hover:text-green-800"
-                            onClick={() => approvePost(post.id)}
-                          />
-                        )}
-                        {post.status !== 'Deleted' && (
-                          <Trash2
-                            size={20}
-                            className="text-red-600 cursor-pointer hover:text-red-800"
-                            onClick={() => deletePost(post.id)}
-                          />
-                        )}
-                      </td>
+              {loading ? (
+                <div className="flex justify-center items-center p-10">
+                  <div className="w-8 h-8 border-4 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              ) : (
+                <table className="min-w-full text-sm">
+                  <thead className="bg-green-600 text-white">
+                    <tr>
+                      <th className="px-4 py-3 text-left">ID</th>
+                      <th className="px-4 py-3 text-left">Tiêu đề</th>
+                      <th className="px-4 py-3 text-left">Trạng thái</th>
+                      <th className="px-4 py-3 text-left">Hành động</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {posts.map((post) => (
+                      <tr
+                        key={post.id}
+                        className="border-b last:border-0 hover:bg-gray-50 cursor-pointer"
+                        onClick={() => navigate(`/posts/${post.id}`)}
+                      >
+                        <td className="px-4 py-2">{post.id}</td>
+                        <td className="px-4 py-2">{post.title}</td>
+                        <td className="px-4 py-2">
+                          <span
+                            className={`px-2 py-1 rounded text-xs font-medium ${
+                              post.status === 'Pending'
+                                ? 'bg-yellow-100 text-yellow-700'
+                                : post.status === 'Approved'
+                                  ? 'bg-green-100 text-green-700'
+                                  : 'bg-red-100 text-red-700'
+                            }`}
+                          >
+                            {post.status}
+                          </span>
+                        </td>
+                        <td
+                          className="px-4 py-2 space-x-2 flex"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {post.status === 'Pending' && (
+                            <CheckCircle
+                              size={20}
+                              className="text-green-600 cursor-pointer hover:text-green-800"
+                              onClick={() => approvePost(post.id)}
+                            />
+                          )}
+                          {post.status !== 'Deleted' && (
+                            <Trash2
+                              size={20}
+                              className="text-red-600 cursor-pointer hover:text-red-800"
+                              onClick={() => deletePost(post.id)}
+                            />
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
           </section>
         )}

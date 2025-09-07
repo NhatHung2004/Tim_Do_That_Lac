@@ -11,7 +11,12 @@ import Setting from './src/components/Dashboard/Setting';
 import Colors from './src/constants/colors';
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { MyDispatchContext, MyRefreshContext, MyUserContext } from './src/configs/MyContext';
+import {
+  MyDispatchContext,
+  MyNotificationContext,
+  MyRefreshContext,
+  MyUserContext,
+} from './src/configs/MyContext';
 import { useContext, useReducer, useState } from 'react';
 import MyUserReducer from './src/reducers/MyUserReducer';
 import PostDetail from './src/components/Dashboard/PostDetail';
@@ -24,6 +29,8 @@ import GroupChatScreen from './src/components/Message/GroupChatScreen';
 import { PaperProvider } from 'react-native-paper';
 import CameraScreen from './src/components/SearchImage/CameraScreen';
 import EditPost from './src/components/Dashboard/EditPost';
+import NotificationHandler from './src/components/Notification/NotificationHandler';
+import NotificationScreen from './src/components/Notification/NotificationScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -183,6 +190,11 @@ const StackNavigator = () => {
         component={EditPost}
         options={{ title: 'Chỉnh sửa bài đăng', headerStyle: { backgroundColor: Colors.primary } }}
       />
+      <Stack.Screen
+        name="notification"
+        component={NotificationScreen}
+        options={{ title: 'Thông báo', headerStyle: { backgroundColor: Colors.primary } }}
+      />
     </Stack.Navigator>
   );
 };
@@ -190,16 +202,20 @@ const StackNavigator = () => {
 export default function App() {
   const [user, dispatch] = useReducer(MyUserReducer, null);
   const [refresh, setRefresh] = useState(false);
+  const [currentNoti, setCurrentNoti] = useState(null);
 
   return (
     <MyUserContext.Provider value={user}>
       <MyDispatchContext.Provider value={dispatch}>
         <MyRefreshContext.Provider value={[refresh, setRefresh]}>
-          <PaperProvider>
-            <NavigationContainer>
-              <StackNavigator />
-            </NavigationContainer>
-          </PaperProvider>
+          <MyNotificationContext.Provider value={[currentNoti, setCurrentNoti]}>
+            <PaperProvider>
+              <NavigationContainer>
+                <NotificationHandler />
+                <StackNavigator />
+              </NavigationContainer>
+            </PaperProvider>
+          </MyNotificationContext.Provider>
         </MyRefreshContext.Provider>
       </MyDispatchContext.Provider>
     </MyUserContext.Provider>
@@ -221,6 +237,6 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 10,
     borderWidth: 3,
-    borderColor: '#FFFFFF',
+    borderColor: Colors.white,
   },
 });
