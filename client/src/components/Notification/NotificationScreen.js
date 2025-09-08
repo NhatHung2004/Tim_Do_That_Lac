@@ -1,7 +1,6 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { View, Text, Image, FlatList, TouchableOpacity } from 'react-native';
 import { AuthApi, endpoints } from '../../configs/Api';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MyUserContext } from '../../configs/MyContext';
 import Colors from '../../constants/colors';
 import { useNavigation } from '@react-navigation/native';
@@ -18,8 +17,7 @@ export default function NotificationScreen() {
   const fetchNotiData = async () => {
     try {
       setLoading(true);
-      const token = await AsyncStorage.getItem('token');
-      const res = await AuthApi(token).get(endpoints.notifications(user.current_user.id));
+      const res = await AuthApi().get(endpoints.notifications(user.current_user.id));
       console.log(res.data);
       setNotifications(res.data);
     } catch (error) {
@@ -37,8 +35,7 @@ export default function NotificationScreen() {
   const markAsRead = async id => {
     try {
       setLoading(true);
-      const token = await AsyncStorage.getItem('token');
-      await AuthApi(token).patch(endpoints.markReadNoti(id));
+      await AuthApi().patch(endpoints.markReadNoti(id));
       setNotifications(prev => prev.map(n => (n.id === id ? { ...n, is_read: true } : n)));
     } catch (error) {
       setLoading(false);

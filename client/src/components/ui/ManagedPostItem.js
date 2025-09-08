@@ -67,7 +67,7 @@ export default function ManagedPostItem({ title, id, status, images, type, onDel
           <Text style={styles.alertTitle}>⚠️ Tin đăng chưa được công khai</Text>
           <Text style={styles.alertDesc}>
             Tin đăng của bạn đang chờ phê duyệt. Chỉ bạn mới có thể xem được tin này. Sau khi được
-            duyệt hoặc nâng cấp gói hiện tại sẽ được công khai ngay.
+            duyệt sẽ được công khai ngay.
           </Text>
         </View>
       )}

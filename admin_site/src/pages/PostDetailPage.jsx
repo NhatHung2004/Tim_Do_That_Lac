@@ -23,12 +23,11 @@ export default function PostDetailPage() {
   const [post, setPost] = useState({});
   const [loading, setLoading] = useState(false);
   const current_user = useContext(MyUserContext);
-  const token = localStorage.getItem('token');
 
   const fetchPostData = async () => {
     try {
       setLoading(true);
-      const res = await AuthApi(token).get(endpoints.postDetail(post_id));
+      const res = await AuthApi().get(endpoints.postDetail(post_id));
       setPost(res.data);
     } catch (error) {
       console.log(error);
@@ -41,7 +40,7 @@ export default function PostDetailPage() {
   const handleAcceptedPost = async () => {
     try {
       setLoading(true);
-      await AuthApi(token).patch(endpoints.approve(post_id));
+      await AuthApi().patch(endpoints.approve(post_id));
       fetchPostData();
     } catch (error) {
       console.log(error.response.data);

@@ -28,24 +28,43 @@ class MyTokenObtainPairView(TokenObtainPairView):
     def post(self, request, *args, **kwargs):
         res = super().post(request, *args, **kwargs)
         data = res.data
-        refresh = data.pop('refresh', None)
+        refresh = data.get('refresh')
 
-        if refresh:
-            res.set_cookie(
-                key='refresh_token',
-                value=refresh,
-                httponly=True,
-                samesite='Lax',
-                path='/token/refresh/',
-            )
+        # check mobile or web
+        client_type = request.headers.get("X-CLIENT", "Web")
 
+        if client_type == "Web":
+            # Set refresh token into cookie
+            if refresh:
+                res.set_cookie(
+                    key='refresh_token',
+                    value=refresh,
+                    httponly=True,
+                    samesite='None',
+                    secure=True
+                )
+            # Do not return refresh to body web
+            data.pop('refresh', None)
+        else:
+            # Mobile -> keep refresh in body response
+            pass
+
+        res.data = data
         return res
 
 class CookieTokenRefreshView(TokenRefreshView):
     def post(self, request, *args, **kwargs):
-        refresh = request.COOKIES.get('refresh_token')
-        if refresh:
-            request.data['refresh'] = refresh
+        client_type = request.headers.get("X-CLIENT", "Web")
+
+        if client_type == "Web":
+            refresh = request.COOKIES.get("refresh_token")
+
+            if refresh:
+                # Cast request.data into mutable dict
+                data = request.data.copy()
+                data["refresh"] = refresh
+                request._full_data = data
+
         return super().post(request, *args, **kwargs)
 
 class AdminPostView(viewsets.ReadOnlyModelViewSet):

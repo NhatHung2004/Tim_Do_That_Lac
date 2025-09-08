@@ -5,7 +5,6 @@ import { Ionicons } from '@expo/vector-icons';
 import ManagedPostItem from '../ui/ManagedPostItem';
 import { MyRefreshContext, MyUserContext } from '../../configs/MyContext';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthApi, endpoints } from '../../configs/Api';
 import styles from '../../styles/ManageStyle';
 
@@ -19,8 +18,7 @@ export default function ManageScreen() {
     if (user == null) return;
 
     try {
-      const token = await AsyncStorage.getItem('token');
-      const res = await AuthApi(token).get(endpoints.userPosts(user.current_user.id));
+      const res = await AuthApi().get(endpoints.userPosts(user.current_user.id));
       setDataPosts(res.data.posts);
     } catch (error) {
       console.error('Error fetching posts:', error);

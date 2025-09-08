@@ -5,47 +5,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const BASE_URL = `${NGROK_URL}/api/`;
 const Api = axios.create({
   baseURL: BASE_URL,
-  withCredentials: true,
-});
-
-// Response interceptor: nếu 401 thì xin lại access token
-Api.interceptors.response.use(
-  response => response,
-  async error => {
-    const originalRequest = error.config;
-
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
-
-      try {
-        const res = await axios.post(
-          `${BASE_URL}token/refresh/`,
-          {},
-          {
-            withCredentials: true,
-          },
-        );
-
-        const newAccess = res.data.access;
-        await AsyncStorage.setItem('token', newAccess);
-
-        // Cập nhật header và gọi lại request cũ
-        originalRequest.headers = {
-          ...originalRequest.headers,
-          Authorization: `Bearer ${newAccess}`,
-        };
-        return Api(originalRequest);
-      } catch (refreshError) {
-        console.error('Refresh token failed:', refreshError);
-        // Logout user
-        await AsyncStorage.removeItem('token');
-        return Promise.reject(refreshError);
-      }
-    }
-
-    return Promise.reject(error);
+  headers: {
+    'X-CLIENT': 'Mobile',
   },
-);
+});
 
 export const endpoints = {
   login: '/token/',
@@ -66,14 +29,59 @@ export const endpoints = {
   markReadNoti: noti_id => `/notifications/${noti_id}/mark_read/`,
 };
 
-export const AuthApi = token => {
-  return axios.create({
+export const AuthApi = () => {
+  const instance = axios.create({
     baseURL: BASE_URL,
     headers: {
-      Authorization: `Bearer ${token}`,
+      'X-CLIENT': 'Mobile',
     },
-    withCredentials: true,
   });
+
+  instance.interceptors.request.use(
+    async config => {
+      const token = await AsyncStorage.getItem('token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      return config;
+    },
+    error => {
+      return Promise.reject(error);
+    },
+  );
+
+  instance.interceptors.response.use(
+    response => {
+      return response;
+    },
+    async error => {
+      if (error.response && error.response.status === 401) {
+        // Handling expired or invalid tokens
+        await AsyncStorage.removeItem('token');
+        const refresh = await AsyncStorage.getItem('refresh');
+
+        if (refresh) {
+          try {
+            const res = await axios.post(`${BASE_URL}token/refresh/`, {
+              refresh: refresh,
+            });
+            const newToken = res.data.access;
+            await AsyncStorage.setItem('token', newToken);
+
+            // Retry the original request with the new token
+            error.config.headers.Authorization = `Bearer ${newToken}`;
+            return instance.request(error.config);
+          } catch (refreshError) {
+            // If refresh also fails, logout the user
+            await AsyncStorage.removeItem('refresh');
+            console.log(refreshError);
+          }
+        }
+      }
+    },
+  );
+
+  return instance;
 };
 
 export default Api;

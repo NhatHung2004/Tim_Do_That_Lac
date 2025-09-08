@@ -101,8 +101,7 @@ const ChatScreen = () => {
   useEffect(() => {
     const fetchOtherUser = async () => {
       try {
-        const token = await AsyncStorage.getItem('token');
-        const res = await AuthApi(token).get(endpoints.userDetail(other_user_id));
+        const res = await AuthApi().get(endpoints.userDetail(other_user_id));
         setOtherUser(res.data);
       } catch (error) {
         console.log(error);

@@ -89,6 +89,7 @@ CSRF_TRUSTED_ORIGINS = [
 
 CORS_ALLOW_HEADERS = list(default_headers) + [
     "ngrok-skip-browser-warning",
+    "x-client"
 ]
 
 REST_FRAMEWORK = {
@@ -104,8 +105,8 @@ from datetime import timedelta
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),  # Access Token lifetime (default is 30 minutes)
     "REFRESH_TOKEN_LIFETIME": timedelta(days=2),   # Refresh Token lifetime (default is 2 days)
-    "ROTATE_REFRESH_TOKENS": True,  # True when you want the refresh token generate new refresh token
-    "BLACKLIST_AFTER_ROTATION": True, # True when you want the blacklist to refresh old tokens after rotate
+    "ROTATE_REFRESH_TOKENS": False,  # True when you want the refresh token generate new refresh token
+    "BLACKLIST_AFTER_ROTATION": False, # True when you want the blacklist to refresh old tokens after rotate
     "UPDATE_LAST_LOGIN": False,
 
     "ALGORITHM": "HS256", # Token signing algorithm

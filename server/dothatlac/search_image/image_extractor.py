@@ -19,12 +19,13 @@ _transform = transforms.Compose([
 def get_model():
     global _resnet
     if _resnet is None:
-        local_weights = "/Users/nhathung/.cache/torch/hub/checkpoints/resnet50-0676ba61.pth"
-        model = models.resnet50()
-        model.load_state_dict(torch.load(local_weights, map_location="cpu"))
-        # Remove the last fully-connected layer
+        # Load ResNet50 pretrained on ImageNet
+        model = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1)
+
+        # # Remove the last fully-connected layer
         _resnet = nn.Sequential(*list(model.children())[:-1])
         _resnet.eval()
+
     return _resnet
 
 def image_extractor(img: Image.Image):

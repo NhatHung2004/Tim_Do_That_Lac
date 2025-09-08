@@ -1,18 +1,15 @@
 import { useNavigation } from '@react-navigation/native';
-import { useContext, useEffect } from 'react';
+import { useEffect } from 'react';
 import { PermissionsAndroid, Platform } from 'react-native';
 import {
   getMessaging,
-  onMessage,
   getInitialNotification,
   requestPermission,
 } from '@react-native-firebase/messaging';
 import notifee, { AndroidImportance } from '@notifee/react-native';
-import { MyNotificationContext } from '../../configs/MyContext';
 
 export default function NotificationHandler() {
   const navigation = useNavigation();
-  const [setCurrentNoti] = useContext(MyNotificationContext);
 
   // display notifications on the application background
   useEffect(() => {
@@ -53,14 +50,6 @@ export default function NotificationHandler() {
         console.log('Android notification permission:', granted);
       }
 
-      // 2. Foreground
-      const unsubscribeForeground = onMessage(messaging, remoteMessage => {
-        if (remoteMessage.data) {
-          console.log('onMessage (Foreground):', remoteMessage.data);
-          setCurrentNoti(remoteMessage.data);
-        }
-      });
-
       // 4. Quit
       const initialNotification = await getInitialNotification(messaging);
       if (initialNotification) {
@@ -72,7 +61,6 @@ export default function NotificationHandler() {
       }
 
       return () => {
-        unsubscribeForeground();
         unsubscribeOpened();
       };
     }

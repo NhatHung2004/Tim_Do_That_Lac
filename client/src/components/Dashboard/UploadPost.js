@@ -21,7 +21,6 @@ import ImageCropPicker from 'react-native-image-crop-picker';
 import Api, { endpoints, AuthApi } from '../../configs/Api';
 import { MyUserContext } from '../../configs/MyContext';
 import MyLoading from '../ui/MyLoading';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { Button, Menu } from 'react-native-paper';
 import styles from '../../styles/UploadPostStyle';
@@ -89,10 +88,8 @@ const UploadPost = () => {
   // Fetch các tag phổ biến
   useEffect(() => {
     const fetchPopularTags = async () => {
-      const token = await AsyncStorage.getItem('token');
-
       try {
-        const response = await AuthApi(token).get(endpoints['tags']);
+        const response = await AuthApi().get(endpoints['tags']);
         setPopularTags(response.data);
       } catch (error) {
         console.error('Error fetching popular tags:', error);
@@ -112,7 +109,6 @@ const UploadPost = () => {
     }
 
     if (user) {
-      const token = await AsyncStorage.getItem('token');
       const user_id = user.current_user.id;
       const category_id = selectedCategory.id;
 
@@ -137,7 +133,7 @@ const UploadPost = () => {
       });
 
       try {
-        await AuthApi(token).post(endpoints['posts'], formData, {
+        await AuthApi().post(endpoints['posts'], formData, {
           headers: {
             'Content-Type': 'multipart/form-data',
           },

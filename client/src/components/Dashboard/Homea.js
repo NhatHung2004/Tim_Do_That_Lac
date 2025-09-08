@@ -1,4 +1,4 @@
-import { useEffect, useState, useContext, useRef, useCallback } from 'react';
+import { useEffect, useState, useContext, useRef, useCallback, use } from 'react';
 import {
   View,
   Text,
@@ -22,8 +22,8 @@ import {
   getToken,
   onTokenRefresh,
   requestPermission,
+  onMessage,
 } from '@react-native-firebase/messaging';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getApp } from '@react-native-firebase/app';
 
 export default function HomeScreen() {
@@ -42,6 +42,7 @@ export default function HomeScreen() {
   const [selectedCategory, setSelectedCategory] = useState('Tất cả danh mục');
   const [selectedCity, setSelectedCity] = useState('Thành phố');
   const [selectedFilter, setSelectedFilter] = useState([]);
+  const [badgeCount, setBadgeCount] = useState(0);
 
   const user = useContext(MyUserContext);
   const animatedHeight = useRef(new Animated.Value(0)).current;
@@ -49,13 +50,12 @@ export default function HomeScreen() {
   const app = getApp();
   const messaging = getMessaging(app);
 
-  // đăng ký token FCM
+  // FCM token registration
   const registerForPush = async () => {
     try {
-      const token = await AsyncStorage.getItem('token');
       await requestPermission(messaging);
       const fcm_token = await getToken(messaging);
-      await AuthApi(token).post(endpoints.fcmToken, { token: fcm_token, platform: Platform.OS }); // Django lưu token
+      await AuthApi().post(endpoints.fcmToken, { token: fcm_token, platform: Platform.OS }); // Django lưu token
     } catch (error) {
       console.log(error);
     }
@@ -66,26 +66,64 @@ export default function HomeScreen() {
 
     registerForPush();
 
-    // Đăng ký lại khi token refresh
+    // re-register when token refresh
     const unsubscribe = onTokenRefresh(messaging, async fcm_token => {
       console.log('New FCM token:', fcm_token);
-
-      const token = await AsyncStorage.getItem('token');
-      if (token) {
-        try {
-          await AuthApi(token).post(endpoints.fcmToken, {
-            token: fcm_token,
-            platform: Platform.OS,
-          });
-          console.log('FCM token updated on server');
-        } catch (err) {
-          console.error('Error updating FCM token:', err);
-        }
+      try {
+        await AuthApi().post(endpoints.fcmToken, {
+          token: fcm_token,
+          platform: Platform.OS,
+        });
+        console.log('FCM token updated on server');
+      } catch (err) {
+        console.error('Error updating FCM token:', err);
       }
     });
 
     return unsubscribe;
   }, [user]);
+
+  // Foreground state notification handler
+  useEffect(() => {
+    const unsubscribeForeground = onMessage(messaging, remoteMessage => {
+      if (remoteMessage.data) {
+        console.log('onMessage (Foreground):', remoteMessage.data);
+
+        setBadgeCount(prevCount => {
+          const newCount = prevCount + 1;
+          if (newCount > 3) return 3; // Maximum limit
+          return newCount;
+        });
+      }
+    });
+
+    return unsubscribeForeground;
+  }, []);
+
+  // Get notifications from api
+  const fetchNotiApi = async () => {
+    try {
+      const res = await AuthApi().get(endpoints.notifications(user.current_user.id));
+      res.data.map(n => {
+        if (!n.is_read) {
+          setBadgeCount(prevCount => {
+            const newCount = prevCount + 1;
+            if (newCount > 3) return 3; // Maximum limit
+            return newCount;
+          });
+        }
+      });
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  // fetch notification when open app from background
+  useFocusEffect(
+    useCallback(() => {
+      if (user) fetchNotiApi();
+    }, [user]),
+  );
 
   // Lấy danh sách tỉnh/thành phố từ API
   useEffect(() => {
@@ -95,7 +133,7 @@ export default function HomeScreen() {
       .catch(err => console.error('Error fetching provinces:', err));
   }, []);
 
-  // Lấy danh sách danh mục từ API
+  // Get categories from API
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -259,9 +297,32 @@ export default function HomeScreen() {
           {/* Nút thông báo */}
           <TouchableOpacity
             style={styles.iconButton}
-            onPress={() => navigation.navigate('notification')}
+            onPress={() => {
+              navigation.navigate('notification');
+              setBadgeCount(0); // Clear badge count when navigating to notifications
+            }}
           >
             <Ionicons name="notifications-outline" size={24} color="#333" />
+            {badgeCount > 0 && (
+              <View
+                style={{
+                  position: 'absolute',
+                  right: -4,
+                  top: -2,
+                  backgroundColor: 'red',
+                  borderRadius: 10,
+                  minWidth: 16,
+                  height: 16,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  paddingHorizontal: 3,
+                }}
+              >
+                <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold' }}>
+                  {badgeCount > 2 ? '2+' : badgeCount}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
 
           {/* Nút tin nhắn */}

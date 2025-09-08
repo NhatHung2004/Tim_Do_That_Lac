@@ -28,8 +28,7 @@ export default function AdminDashboard() {
   const fetchPosts = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      const res = await AuthApi(token).get(endpoints['posts']);
+      const res = await AuthApi().get(endpoints['posts']);
       setPosts(res.data);
     } catch (err) {
       console.error(err);
@@ -40,7 +39,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (current_user) fetchPosts();
-  }, []);
+  }, [current_user]);
 
   const approvePost = (id) => {
     setPosts((prev) => prev.map((p) => (p.id === id ? { ...p, status: 'Approved' } : p)));
