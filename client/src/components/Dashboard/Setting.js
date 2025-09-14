@@ -1,10 +1,16 @@
-import { View, Text, TouchableOpacity, Image, SafeAreaView, ScrollView } from 'react-native';
-import { MaterialCommunityIcons, SimpleLineIcons } from '@expo/vector-icons';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Image,
+  SafeAreaView,
+  ScrollView,
+  Switch,
+} from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import SectionContainer from '../ui/SectionContainer';
-import SectionItem from '../ui/SectionItem';
 import { MyUserContext, MyDispatchContext } from '../../configs/MyContext';
-import { useContext } from 'react';
+import { useContext, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import styles from '../../styles/SettingStyle';
@@ -13,6 +19,7 @@ export default function MoreScreen() {
   const navigation = useNavigation();
   const user = useContext(MyUserContext);
   const dispatch = useContext(MyDispatchContext);
+  const [darkMode, setDarkMode] = useState(false);
 
   const handleLogout = async () => {
     await AsyncStorage.removeItem('token');
@@ -25,10 +32,7 @@ export default function MoreScreen() {
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Thêm</Text>
-          <TouchableOpacity>
-            <SimpleLineIcons name="bell" size={24} color="black" />
-          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Cài đặt</Text>
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false}>
@@ -62,17 +66,25 @@ export default function MoreScreen() {
           </TouchableOpacity>
 
           {user && (
-            <SectionContainer title="Tài khoản">
-              <SectionItem title="Thông tin cá nhân">
-                <MaterialCommunityIcons name="account" size={25} style={styles.listItemIcon} />
-              </SectionItem>
-              <SectionItem title="Đổi mật khẩu">
-                <MaterialCommunityIcons name="lock-reset" size={25} style={styles.listItemIcon} />
-              </SectionItem>
-              <SectionItem title="Đăng xuất" onPress={handleLogout}>
-                <MaterialCommunityIcons name="logout" size={25} style={styles.listItemIcon} />
-              </SectionItem>
-            </SectionContainer>
+            <>
+              {/* Account mmanagement */}
+              <Text style={styles.sectionTitle}>Quản lý tài khoản</Text>
+              <TouchableOpacity
+                style={styles.item}
+                onPress={() => navigation.navigate('edit_profile')}
+              >
+                <MaterialIcons name="edit" size={22} color="#000" style={styles.icon} />
+                <Text style={styles.itemText}>Chỉnh sửa thông tin</Text>
+                <MaterialIcons name="chevron-right" size={22} color="#999" style={styles.arrow} />
+              </TouchableOpacity>
+            </>
+          )}
+
+          {user && (
+            <TouchableOpacity style={styles.item} onPress={handleLogout}>
+              <MaterialIcons name="logout" size={22} color="#000" style={styles.icon} />
+              <Text style={styles.itemText}>Đăng xuất</Text>
+            </TouchableOpacity>
           )}
         </ScrollView>
       </View>

@@ -23,21 +23,21 @@ export default function LoginScreen() {
   const route = useRoute();
   const dispatch = useContext(MyDispatchContext);
 
-  // cấu hình firebase google
+  // Google Signin configuration
   useEffect(() => {
     GoogleSignin.configure({
       webClientId: WEB_CLIENT_ID,
     });
   }, []);
 
-  // đăng nhập bằng google
+  // Sign in with Google
   const googleLogin = async () => {
     try {
       setLoadingGoogle(true);
 
       await GoogleSignin.signOut();
 
-      // Kiểm tra thiết bị có hỗ trợ Google Play
+      // Check if device has Google Play services
       await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
       const signInResult = await GoogleSignin.signIn();
 
@@ -67,7 +67,7 @@ export default function LoginScreen() {
     }
   };
 
-  // xử lý login bằng username/pasword
+  // Standard login
   const handleLogin = async () => {
     setLoading(true);
 
@@ -81,9 +81,8 @@ export default function LoginScreen() {
       const refresh = response.data.refresh;
       const current_user = response.data.user;
 
-      console.log('asdasd', current_user);
-
       await AsyncStorage.setItem('token', token);
+      await AsyncStorage.setItem('refresh', refresh);
 
       dispatch({ type: 'login', payload: { current_user } });
 
@@ -116,10 +115,6 @@ export default function LoginScreen() {
         <CustomInput placeholder="Tên đăng nhập" value={username} setValue={setUsername} />
 
         <PasswordInput placeholder="Mật khẩu" value={password} setValue={setPassword} />
-
-        <TouchableOpacity onPress={() => navigation.navigate('forgot_password')}>
-          <Text style={styles.forgotPassword}>Quên mật khẩu?</Text>
-        </TouchableOpacity>
 
         {loading ? (
           <MyLoading color={Colors.primary} />

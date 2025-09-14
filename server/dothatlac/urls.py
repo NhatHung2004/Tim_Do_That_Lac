@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework_simplejwt.views import (
-    TokenRefreshView, TokenVerifyView
+    TokenVerifyView
 )
 from . import views
 from rest_framework.routers import DefaultRouter
@@ -14,6 +14,8 @@ router.register('categories', views.CategoryView, basename='categories')
 router.register('postimages', views.PostImageView, basename='postimages')
 router.register('admin/posts', views.AdminPostView, basename='admin')
 router.register('notifications', views.NotificationViewSet, basename='notifications')
+router.register('comments', views.CommentView, basename='comments')
+router.register('stats', views.StatsView, basename='stats')
 
 urlpatterns = [
     path('', include(router.urls)),
@@ -22,4 +24,5 @@ urlpatterns = [
     path("token/verify/", TokenVerifyView.as_view(), name="token_verify"),
     path('token/google/', views.GoogleLoginView.as_view(), name='token_google'),
     path('fcm_token/', views.SaveFCMTokenView.as_view(), name='fcm_token'),
+    path('user-stats/', views.UserStatsView.as_view(), name='user_stats'),
 ]

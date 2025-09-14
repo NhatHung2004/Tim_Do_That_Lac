@@ -51,5 +51,5 @@ class TokenAuthMiddleware:
         return await self.inner(scope, receive, send)
 
 
-# This is the Stack that will be user in asgi.py
+# This is the Stack that will be used in asgi.py
 TokenAuthMiddlewareStack = lambda inner: TokenAuthMiddleware(AuthMiddlewareStack(inner))

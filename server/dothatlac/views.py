@@ -1,18 +1,20 @@
 import json
-from django.db.models import Q, F
+from django.db.models import Q, F, Count
+from django.db.models.functions import TruncMonth
 from rest_framework import viewsets, generics
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework.views import APIView
-from .models import User, Post, PostImage, ChatRoom, Tag, Category, FCMToken, Notification
+from .models import User, Post, PostImage, ChatRoom, Tag, Category, FCMToken, Notification, Comment
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework_simplejwt.tokens import RefreshToken
 from cloudinary import uploader
 from .serializers import (MyTokenObtainPairSerializer, CategorySerializer, ChatRoomSerializer,
                           PostSerializer, PostImageSerializer, TagSerializer,
-                          UserRegistrationSerializers, UserPostSerializer, NotificationSerializer)
+                          UserRegistrationSerializers, UserPostSerializer, NotificationSerializer, CommentSerializer,
+                          UserUpdateSerializer)
 from rest_framework import status
 import requests
 from PIL import Image
@@ -20,7 +22,8 @@ from io import BytesIO
 from dothatlac.search_image.image_extractor import image_extractor, find_similar
 from google.oauth2 import id_token
 from google.auth.transport import requests as requests_google
-from dothatlac.utils.notification import send_approve_notification
+from dothatlac.utils.notification import send_approve_notification, send_reject_notification
+
 
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
@@ -93,9 +96,20 @@ class AdminPostView(viewsets.ReadOnlyModelViewSet):
     @action(methods=['patch'], detail=True, url_path='reject', permission_classes=[IsAdminUser])
     def reject(self, request, pk=None):
         post = self.get_object()
-        # reason = request.data.get('reason')
+        reason = request.data.get('reason')
         post.status = 'rejected'
         post.save(update_fields=['status'])
+
+        Notification.objects.create(
+            title='Bài đăng không được duyệt',
+            body=f"'{post.title}' không được duyệt.",
+            link=post.id,
+            is_read=False,
+            user=post.user,
+            reason=reason,
+        )
+
+        send_reject_notification(post.user, post, reason)
         return Response({'ok': True}, status=status.HTTP_200_OK)
 
 class SaveFCMTokenView(APIView):
@@ -134,7 +148,7 @@ class GoogleLoginView(APIView):
                     'id': user.id,
                     'username': user.username,
                     'email': user.email,
-                    'phone': getattr(user, 'phone', None),
+                    'full_name': getattr(user, 'full_name', None),
                     'avatar': user.avatar if user.avatar else None,
                 }
             }, status=status.HTTP_200_OK)
@@ -160,6 +174,11 @@ class UserView(viewsets.ViewSet, generics.CreateAPIView, generics.RetrieveAPIVie
     queryset = User.objects.all()
     permission_classes = [IsAuthenticated]
 
+    def get_serializer_class(self):
+        if self.action in ['partial_update', 'update']:
+            return UserUpdateSerializer
+        return UserRegistrationSerializers
+
     def create(self, request, *args, **kwargs):
         serializer = UserRegistrationSerializers(data=request.data)
         if serializer.is_valid():
@@ -173,12 +192,55 @@ class UserView(viewsets.ViewSet, generics.CreateAPIView, generics.RetrieveAPIVie
         serializer = UserPostSerializer(user)
         return Response(serializer.data)
 
-    @action(detail=True, methods=['get'])
+    @action(detail=True, methods=['get', 'delete'])
     def notifications(self, request, pk=None):
         current_user = self.get_object()
-        notifications = current_user.notifications.all()
-        serializer = NotificationSerializer(notifications, many=True)
-        return Response(serializer.data)
+
+        if request.method == 'GET':
+            notifications = current_user.notifications.all()
+            serializer = NotificationSerializer(notifications, many=True)
+            return Response(serializer.data)
+
+        elif request.method == 'DELETE':
+            deleted_count, _ = current_user.notifications.all().delete()
+            return Response({'deleted_count': deleted_count}, status=status.HTTP_204_NO_CONTENT)
+
+        return None
+
+    def partial_update(self, request, *args, **kwargs):
+        user = self.get_object()
+        data = request.data.copy()
+
+        avatar_file = request.FILES.get("avatar")
+        if avatar_file:
+            result = uploader.upload(avatar_file)
+            avatar_url = result['secure_url']
+            data['avatar'] = avatar_url
+
+        serializer = self.get_serializer(user, data=data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['patch'], permission_classes=[IsAuthenticated])
+    def change_password(self, request, pk=None):
+        user = self.get_object()
+
+        old_password = request.data.get("old_password")
+        new_password = request.data.get("new_password")
+        confirm_password = request.data.get("confirm_password")
+
+        if not user.check_password(old_password):
+            return Response({"error": "Mật khẩu cũ không đúng"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if new_password != confirm_password:
+            return Response({"error": "Mật khẩu xác nhận không khớp"}, status=status.HTTP_400_BAD_REQUEST)
+
+        user.set_password(new_password)
+        user.save()
+
+        return Response({"message": "Đổi mật khẩu thành công"}, status=status.HTTP_200_OK)
 
     def get_permissions(self):
         if self.request.method == 'POST':
@@ -282,6 +344,13 @@ class PostView(viewsets.ViewSet, generics.CreateAPIView, generics.RetrieveAPIVie
         # Return serialized data
         return Response(PostSerializer(post).data, status=201)
 
+    @action(detail=True, methods=['patch'])
+    def found(self, request, pk=None):
+        post = self.get_object()
+        post.status = 'found'
+        post.save(update_fields=['status'])
+        return Response({'ok': True}, status=status.HTTP_200_OK)
+
     @action(detail=False, methods=['post'])
     def batch(self, request):
         ids = request.data.get('ids', [])
@@ -299,6 +368,13 @@ class PostView(viewsets.ViewSet, generics.CreateAPIView, generics.RetrieveAPIVie
         ordered = [post_map[i] for i in unique_ids if i in post_map]
 
         return Response(ordered, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['get'], permission_classes=[AllowAny])
+    def comments(self, request, pk=None):
+        post = self.get_object()
+        comments = post.comments.all()
+        serializer = CommentSerializer(comments, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     def get_queryset(self):
         queryset = Post.objects
@@ -385,3 +461,79 @@ class PostImageView(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAPIV
                 })
 
         return Response({"all_results": all_results}, status=status.HTTP_200_OK)
+
+class CommentView(viewsets.ViewSet, generics.CreateAPIView):
+    queryset = Comment.objects.all()
+    serializer_class = CommentSerializer
+    permission_classes = [IsAuthenticated]
+
+class UserStatsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        total_posts = Post.objects.filter(user=user).count()
+        found_posts = Post.objects.filter(user=user, status="found").count()
+        pending_posts = Post.objects.filter(user=user, status="processing").count()
+
+        monthly_stats = (
+            Post.objects.filter(user=user)
+            .annotate(month=TruncMonth("posted_time"))
+            .values("month")
+            .annotate(count=Count("id"))
+            .order_by("month")
+        )
+
+        monthly = [{"month": m["month"].strftime("%m/%Y"), "count": m["count"]} for m in monthly_stats]
+
+        return Response({
+            "total_posts": total_posts,
+            "found_posts": found_posts,
+            "pending_posts": pending_posts,
+            "monthly": monthly
+        })
+
+class StatsView(viewsets.ViewSet):
+    permission_classes = [IsAdminUser]
+
+    @action(detail=False, methods=['get'])
+    def summary(self, request):
+        total_users = User.objects.filter(is_superuser=False).count()
+        total_posts = Post.objects.count()
+        total_found_posts = Post.objects.filter(status='found').count()
+        total_approved_posts = Post.objects.filter(status='approved').count()
+
+        success_rate = 0
+        if total_posts > 0:
+            success_rate = (total_found_posts / total_posts) * 100
+
+        return Response({
+            "users": total_users,
+            "posts": total_posts,
+            "resolved": total_approved_posts,
+            "successRate": round(success_rate, 2),  # làm tròn 2 chữ số thập phân
+        })
+
+    @action(detail=False, methods=['get'])
+    def posts_by_month(self, request):
+        # nhóm theo tháng
+        stats = (
+            Post.objects.annotate(month=TruncMonth("posted_time"))
+            .values("month")
+            .annotate(
+                lost=Count("id", filter=Q(type="lost")),
+                found=Count("id", filter=Q(type="found")),
+            )
+            .order_by("month")
+        )
+
+        result = []
+        for s in stats:
+            result.append({
+                "month": s["month"].strftime("%b"),  # ví dụ: Jan, Feb
+                "lost": s["lost"],
+                "found": s["found"]
+            })
+
+        return Response(result)
+

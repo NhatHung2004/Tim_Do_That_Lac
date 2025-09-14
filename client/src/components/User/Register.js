@@ -41,9 +41,9 @@ export default function LoginScreen() {
     if (Object.keys(newErrors).length === 0) {
       try {
         setLoading(true);
-        const res = await Api.post(endpoints['register'], {
+        await Api.post(endpoints['register'], {
           username: username,
-          fullname: fullname,
+          full_name: fullname,
           password: password,
           email: email,
         });

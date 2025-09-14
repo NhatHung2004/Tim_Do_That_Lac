@@ -6,7 +6,6 @@ import Register from './src/components/User/Register';
 import HomeScreen from './src/components/Dashboard/Homea';
 import ManageScreen from './src/components/Dashboard/Manage';
 import PostScreen from './src/components/Dashboard/Post';
-import ProfileScreen from './src/components/Dashboard/Profilea';
 import Setting from './src/components/Dashboard/Setting';
 import Colors from './src/constants/colors';
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -20,7 +19,6 @@ import {
 import { useContext, useReducer, useState } from 'react';
 import MyUserReducer from './src/reducers/MyUserReducer';
 import PostDetail from './src/components/Dashboard/PostDetail';
-import ForgotPass from './src/components/User/ForgotPass';
 import { useNavigation } from '@react-navigation/native';
 import UploadPost from './src/components/Dashboard/UploadPost';
 import MessagesScreen from './src/components/Message';
@@ -31,6 +29,8 @@ import CameraScreen from './src/components/SearchImage/CameraScreen';
 import EditPost from './src/components/Dashboard/EditPost';
 import NotificationHandler from './src/components/Notification/NotificationHandler';
 import NotificationScreen from './src/components/Notification/NotificationScreen';
+import EditProfile from './src/components/User/EditProfile';
+import StatsScreen from './src/components/Dashboard/Profilea';
 
 const Stack = createNativeStackNavigator();
 
@@ -122,10 +122,14 @@ const TabNavigator = () => {
       <Tab.Screen
         name="profile"
         options={{
-          title: 'Tài khoản',
-          tabBarIcon: ({ color, size }) => <Feather name="user" size={size} color={color} />,
+          title: 'Thống kê',
+          tabBarIcon: ({ color, size }) => <Feather name="activity" size={size} color={color} />,
+          headerShown: true,
+          headerTitleAlign: 'center',
+          headerStyle: { backgroundColor: Colors.primary },
+          headerTitleStyle: { color: Colors.white, fontSize: 20, fontWeight: 'bold' },
         }}
-        component={ProfileScreen}
+        component={StatsScreen}
       />
       <Tab.Screen
         name="setting"
@@ -159,11 +163,6 @@ const StackNavigator = () => {
         options={{ headerShown: false, animation: 'slide_from_right' }}
       />
       <Stack.Screen
-        name="forgot_password"
-        component={ForgotPass}
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
         name="post"
         component={PostScreen}
         options={{ headerShown: false, animation: 'slide_from_bottom' }}
@@ -194,6 +193,15 @@ const StackNavigator = () => {
         name="notification"
         component={NotificationScreen}
         options={{ title: 'Thông báo', headerStyle: { backgroundColor: Colors.primary } }}
+      />
+      <Stack.Screen
+        name="edit_profile"
+        component={EditProfile}
+        options={{
+          title: 'Chỉnh sửa hồ sơ',
+          headerStyle: { backgroundColor: Colors.primary },
+          headerTintColor: Colors.black,
+        }}
       />
     </Stack.Navigator>
   );

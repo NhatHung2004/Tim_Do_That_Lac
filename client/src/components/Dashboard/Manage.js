@@ -1,4 +1,4 @@
-import React, { useContext, useCallback, useState } from 'react';
+import React, { useContext, useCallback, useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, FlatList } from 'react-native';
 import Colors from '../../constants/colors';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,6 +13,7 @@ export default function ManageScreen() {
   const [dataPosts, setDataPosts] = useState([]);
   const user = useContext(MyUserContext);
   const [refresh, setRefresh] = useContext(MyRefreshContext);
+  const [checkFetchPosts, setCheckFetchPosts] = useState(false);
 
   const fetchPostsData = async () => {
     if (user == null) return;
@@ -38,6 +39,12 @@ export default function ManageScreen() {
     setDataPosts(prev => prev.filter(p => p.id !== post_id));
     setRefresh(true);
   };
+
+  // Fetch posts when status post changes
+  useEffect(() => {
+    fetchPostsData();
+    setCheckFetchPosts(false);
+  }, [checkFetchPosts]);
 
   useFocusEffect(
     useCallback(() => {
@@ -77,7 +84,9 @@ export default function ManageScreen() {
 
           <FlatList
             data={dataPosts}
-            renderItem={({ item }) => <ManagedPostItem {...item} onDeleted={handleDeleted} />}
+            renderItem={({ item }) => (
+              <ManagedPostItem {...item} onDeleted={handleDeleted} checked={setCheckFetchPosts} />
+            )}
             keyExtractor={item => item.id}
             showsVerticalScrollIndicator={false}
           />

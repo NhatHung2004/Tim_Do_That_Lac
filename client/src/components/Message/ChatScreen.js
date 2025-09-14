@@ -3,7 +3,6 @@ import {
   View,
   Text,
   TouchableOpacity,
-  StyleSheet,
   TextInput,
   Image,
   FlatList,
@@ -18,24 +17,39 @@ import { AuthApi, endpoints } from '../../configs/Api';
 import { MyUserContext } from '../../configs/MyContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SUB_NGROK_URL } from '@env';
+import styles from '../../styles/ChatScreenStyle';
+import * as ImagePicker from 'react-native-image-picker';
 
 const ChatScreen = () => {
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
   const [otherUser, setOtherUser] = useState({});
   const flatListRef = useRef(null);
-  const webSocketRef = useRef(null); // giá trị thay đổi nhưng không làm re-render
+  const webSocketRef = useRef(null); // websocket reference
   const [isConnected, setIsConnected] = useState(false);
   const navigation = useNavigation();
   const route = useRoute();
   const user = useContext(MyUserContext);
+  const [image, setImage] = useState(null);
 
   const { other_user_id } = route.params;
 
-  // State để lưu chiều cao bàn phím
+  // state to track keyboard height
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
-  // Khởi tạo websocket
+  // Pick image from gallery
+  const pickImageFromGallery = () => {
+    ImagePicker.launchImageLibrary({ mediaType: 'photo', quality: 0.7 }, response => {
+      if (response.didCancel) return;
+      if (response.errorCode) {
+        Alert.alert('Lỗi', 'Không thể chọn ảnh');
+      } else {
+        setImage(response.assets[0].uri);
+      }
+    });
+  };
+
+  // initialize WebSocket connection
   useEffect(() => {
     const connectWebSocKet = async () => {
       const token = await AsyncStorage.getItem('token');
@@ -74,16 +88,16 @@ const ChatScreen = () => {
     };
   }, [other_user_id]);
 
-  // Cuộn xuống tin nhắn cuối cùng khi có tin nhắn mới
+  // Auto scroll to bottom when messages change
   useEffect(() => {
     if (messages.length > 0) {
-      // Đảm bảo FlatList đã được render để có thể cuộn
+      // Ensure the FlatList has rendered the new message before scrolling
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
-      }, 100); // Một chút delay để đảm bảo render xong
+      }, 100);
     }
 
-    // Lắng nghe sự kiện bàn phím
+    // Listen for keyboard show/hide events
     const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', e => {
       setKeyboardHeight(e.endCoordinates.height);
     });
@@ -97,7 +111,7 @@ const ChatScreen = () => {
     };
   }, [messages]);
 
-  // Lấy thông tin của otherUser
+  // Fetch other user info
   useEffect(() => {
     const fetchOtherUser = async () => {
       try {
@@ -116,7 +130,7 @@ const ChatScreen = () => {
 
     webSocketRef.current.send(
       JSON.stringify({
-        content: inputText.trim(), // Gửi đúng trường 'content' như backend mong đợi
+        content: inputText.trim(), // send message to server
       }),
     );
     setInputText('');
@@ -152,17 +166,11 @@ const ChatScreen = () => {
           <View style={styles.chatPartnerInfo}>
             <Image source={{ uri: otherUser.avatar }} style={styles.chatPartnerAvatar} />
             <View>
-              <Text style={styles.chatPartnerName}>{otherUser.username}</Text>
-              <Text style={styles.lastActive}>Truy cập 1 ngày trước</Text>
+              <Text style={styles.chatPartnerName}>
+                {otherUser.full_name || otherUser.username}
+              </Text>
             </View>
           </View>
-          <TouchableOpacity
-            onPress={() => {
-              /* Xử lý tùy chọn khác */
-            }}
-          >
-            <Feather name="more-horizontal" size={24} color="#000" />
-          </TouchableOpacity>
         </View>
 
         {/* Message List */}
@@ -186,15 +194,15 @@ const ChatScreen = () => {
           ]}
         >
           <View style={styles.inputBar}>
-            <TouchableOpacity style={styles.inputBarButton}>
+            {/* <TouchableOpacity style={styles.inputBarButton}>
               <Entypo name="circle-with-plus" size={24} color={Colors.primary} />
-            </TouchableOpacity>
+            </TouchableOpacity> */}
             <TouchableOpacity style={styles.inputBarButton}>
               <Ionicons name="image-outline" size={24} color={Colors.primary} />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.inputBarButton}>
+            {/* <TouchableOpacity style={styles.inputBarButton}>
               <Feather name="video" size={24} color={Colors.primary} />
-            </TouchableOpacity>
+            </TouchableOpacity> */}
             <TextInput
               style={styles.textInput}
               multiline
@@ -215,104 +223,5 @@ const ChatScreen = () => {
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: Colors.primary,
-    paddingTop: Platform.OS === 'android' ? 25 : 60,
-  },
-  container: {
-    flex: 1,
-    backgroundColor: Colors.white,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: Colors.primary,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  chatPartnerInfo: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginLeft: 15,
-  },
-  chatPartnerAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 10,
-    backgroundColor: Colors.gray,
-  },
-  chatPartnerName: {
-    fontSize: 17,
-    fontWeight: 'bold',
-    color: Colors.black,
-  },
-  lastActive: {
-    fontSize: 12,
-    color: '#555',
-  },
-  messageListContent: {
-    flexGrow: 1,
-    justifyContent: 'flex-start',
-    paddingVertical: 10,
-    paddingHorizontal: 10,
-    backgroundColor: '#f0f2f5',
-  },
-  messageBubble: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    marginBottom: 8,
-    maxWidth: '75%',
-  },
-  myMessageBubble: {
-    alignSelf: 'flex-end',
-    backgroundColor: '#e1ffc7',
-  },
-  otherMessageBubble: {
-    alignSelf: 'flex-start',
-    backgroundColor: Colors.white,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-  },
-  messageText: {
-    fontSize: 15,
-    color: '#333',
-  },
-  inputBarContainer: {
-    backgroundColor: Colors.white,
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
-    marginBottom: Platform.OS === 'ios' && 20,
-  },
-  inputBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-  },
-  inputBarButton: {
-    padding: 5,
-    marginRight: 5,
-  },
-  textInput: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 20,
-    paddingHorizontal: 15,
-    paddingVertical: Platform.OS === 'ios' ? 10 : 8,
-    fontSize: 16,
-    marginRight: 10,
-  },
-  sendButton: {
-    padding: 5,
-  },
-});
 
 export default ChatScreen;

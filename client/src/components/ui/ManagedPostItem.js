@@ -4,9 +4,13 @@ import { useNavigation } from '@react-navigation/native';
 import styles from '../../styles/ManagedPostItemStyle';
 import { AuthApi, endpoints } from '../../configs/Api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useState } from 'react';
+import MyLoading from './MyLoading';
+import Colors from '../../constants/colors';
 
-export default function ManagedPostItem({ title, id, status, images, type, onDeleted }) {
+export default function ManagedPostItem({ title, id, status, images, type, onDeleted, checked }) {
   const navigation = useNavigation();
+  const [loading, setLoading] = useState(false);
 
   const deletePost = async post_id => {
     try {
@@ -16,6 +20,20 @@ export default function ManagedPostItem({ title, id, status, images, type, onDel
       if (onDeleted) onDeleted(post_id);
     } catch (error) {
       console.log(error);
+    }
+  };
+
+  const handleEditStatus = async () => {
+    try {
+      setLoading(true);
+      await AuthApi().patch(endpoints.changeStatus(id));
+      Alert.alert('Thông báo', 'Cập nhật trạng thái thành công');
+      checked(true);
+    } catch (error) {
+      setLoading(false);
+      console.log(error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -52,7 +70,9 @@ export default function ManagedPostItem({ title, id, status, images, type, onDel
               ? 'Chờ duyệt'
               : status === 'rejected'
                 ? 'Từ chối'
-                : 'Chấp nhận'}
+                : status === 'found'
+                  ? 'Đã tìm thấy'
+                  : 'Chấp nhận'}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.tab}>
@@ -94,15 +114,23 @@ export default function ManagedPostItem({ title, id, status, images, type, onDel
 
       {/* Action buttons */}
       <View style={styles.buttonRow}>
-        <TouchableOpacity style={styles.primaryBtn}>
-          <Text style={styles.primaryBtnText}>Đánh dấu đã tìm thấy</Text>
-        </TouchableOpacity>
         <TouchableOpacity
-          style={styles.outlineBtn}
-          onPress={() => navigation.navigate('edit_post', { post_id: id })}
+          style={[styles.primaryBtn, status === 'found' && { backgroundColor: Colors.gray }]}
+          onPress={handleEditStatus}
+          disabled={loading || status === 'found'}
         >
-          <Text style={styles.outlineBtnText}>Chỉnh sửa</Text>
+          <Text style={styles.primaryBtnText}>
+            {loading ? <MyLoading color={Colors.white} /> : 'Đã tìm thấy'}
+          </Text>
         </TouchableOpacity>
+        {status !== 'found' && (
+          <TouchableOpacity
+            style={styles.outlineBtn}
+            onPress={() => navigation.navigate('edit_post', { post_id: id })}
+          >
+            <Text style={styles.outlineBtnText}>Chỉnh sửa</Text>
+          </TouchableOpacity>
+        )}
         <TouchableOpacity style={styles.iconButton} onPress={() => handleRemovePost(id)}>
           <MaterialIcons name="delete" size={24} color="#555" />
         </TouchableOpacity>

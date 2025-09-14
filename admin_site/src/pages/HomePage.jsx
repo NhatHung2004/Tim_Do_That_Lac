@@ -1,11 +1,57 @@
 import React, { useContext, useEffect, useState } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import {
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Legend,
+} from 'recharts';
 import { Home, BarChart2, LogOut, CheckCircle, Trash2, RefreshCcw } from 'lucide-react';
 import { MyDispatchContext, MyUserContext } from '../config/MyContext';
 import { useNavigate } from 'react-router-dom';
 import { AuthApi, endpoints } from '../config/Api';
 
 export default function AdminDashboard() {
+  const [summary, setSummary] = useState({});
+  const [postsByMonth, setPostsByMonth] = useState([]);
+
+  const fetchStatsSummary = async () => {
+    try {
+      const res = await AuthApi().get(endpoints.statsSummary);
+      setSummary(res.data);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const fetchStatsPostsByMonth = async () => {
+    try {
+      const res = await AuthApi().get(endpoints.stats_posts_by_month);
+      setPostsByMonth(res.data);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const typeRatio = [
+    { name: 'Mất đồ', value: 200 },
+    { name: 'Nhặt được', value: 140 },
+  ];
+
+  const topCategories = [
+    { key: 1, category: 'Điện thoại', count: 80 },
+    { key: 2, category: 'Laptop', count: 45 },
+    { key: 3, category: 'Giấy tờ', count: 60 },
+    { key: 4, category: 'Thú cưng', count: 30 },
+  ];
+
+  const colors = ['#f39c12', '#3CB371'];
+
   const [posts, setPosts] = useState([]);
   const [activeTab, setActiveTab] = useState('posts');
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -49,12 +95,12 @@ export default function AdminDashboard() {
     setPosts((prev) => prev.map((p) => (p.id === id ? { ...p, status: 'Deleted' } : p)));
   };
 
-  // Thống kê
-  const stats = [
-    { name: 'Pending', value: posts.filter((p) => p.status === 'Pending').length },
-    { name: 'Approved', value: posts.filter((p) => p.status === 'Approved').length },
-    { name: 'Deleted', value: posts.filter((p) => p.status === 'Deleted').length },
-  ];
+  useEffect(() => {
+    if (activeTab === 'stats') {
+      fetchStatsSummary();
+      fetchStatsPostsByMonth();
+    }
+  }, [activeTab]);
 
   return (
     <div className="min-h-screen flex bg-gray-50">
@@ -204,20 +250,76 @@ export default function AdminDashboard() {
         )}
 
         {activeTab === 'stats' && (
-          <section>
-            <h2 className="text-xl font-semibold text-green-700 mb-4">Thống kê</h2>
-            <div className="bg-white shadow rounded-lg p-6">
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={stats}>
+          <div className="p-6 bg-gray-100 min-h-screen">
+            {/* Cards tổng quan */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="bg-white p-6 rounded-2xl shadow">
+                <h3 className="text-gray-500 text-sm">Người dùng</h3>
+                <p className="text-2xl font-bold">{summary.users}</p>
+              </div>
+              <div className="bg-white p-6 rounded-2xl shadow">
+                <h3 className="text-gray-500 text-sm">Tin đăng</h3>
+                <p className="text-2xl font-bold">{summary.posts}</p>
+              </div>
+              <div className="bg-white p-6 rounded-2xl shadow">
+                <h3 className="text-gray-500 text-sm">Đã giải quyết</h3>
+                <p className="text-2xl font-bold">{summary.resolved}</p>
+              </div>
+              <div className="bg-white p-6 rounded-2xl shadow">
+                <h3 className="text-gray-500 text-sm">Tỷ lệ thành công</h3>
+                <p className="text-2xl font-bold">{summary.successRate}%</p>
+              </div>
+            </div>
+
+            {/* Biểu đồ */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+              <div className="bg-white p-6 rounded-2xl shadow">
+                <h3 className="font-semibold mb-4">Tin đăng theo tháng</h3>
+                <BarChart width={400} height={300} data={postsByMonth}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
+                  <XAxis dataKey="month" />
                   <YAxis />
                   <Tooltip />
-                  <Bar dataKey="value" fill="#16a34a" radius={[6, 6, 0, 0]} />
+                  <Legend />
+                  <Bar dataKey="lost" fill="#EF4444" name="Mất đồ" />
+                  <Bar dataKey="found" fill="#10B981" name="Nhặt được" />
                 </BarChart>
-              </ResponsiveContainer>
+              </div>
+
+              <div className="bg-white p-6 rounded-2xl shadow">
+                <h3 className="font-semibold mb-4">Tỷ lệ Mất / Nhặt</h3>
+                <PieChart width={400} height={300}>
+                  <Pie data={typeRatio} cx="50%" cy="50%" outerRadius={100} dataKey="value" label>
+                    {typeRatio.map((entry, index) => (
+                      <Cell key={index} fill={colors[index % colors.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </div>
             </div>
-          </section>
+
+            {/* Top danh mục */}
+            <div className="bg-white p-6 rounded-2xl shadow mt-6">
+              <h3 className="font-semibold mb-4">Top danh mục mất đồ nhiều nhất</h3>
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-gray-100 text-left">
+                    <th className="p-2">Danh mục</th>
+                    <th className="p-2">Số lượng</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {topCategories.map((item) => (
+                    <tr key={item.id} className="border-b">
+                      <td className="p-2">{item.category}</td>
+                      <td className="p-2">{item.count}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         )}
       </main>
     </div>

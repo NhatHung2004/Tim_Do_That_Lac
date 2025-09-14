@@ -43,6 +43,7 @@ export default function HomeScreen() {
   const [selectedCity, setSelectedCity] = useState('Thành phố');
   const [selectedFilter, setSelectedFilter] = useState([]);
   const [badgeCount, setBadgeCount] = useState(0);
+  const [badgeMess, setBadgeMess] = useState(false);
 
   const user = useContext(MyUserContext);
   const animatedHeight = useRef(new Animated.Value(0)).current;
@@ -89,11 +90,14 @@ export default function HomeScreen() {
       if (remoteMessage.data) {
         console.log('onMessage (Foreground):', remoteMessage.data);
 
-        setBadgeCount(prevCount => {
-          const newCount = prevCount + 1;
-          if (newCount > 3) return 3; // Maximum limit
-          return newCount;
-        });
+        if (remoteMessage.data.type === 'message') setBadgeMess(true);
+        else {
+          setBadgeCount(prevCount => {
+            const newCount = prevCount + 1;
+            if (newCount > 3) return 3; // Maximum limit
+            return newCount;
+          });
+        }
       }
     });
 
@@ -329,11 +333,31 @@ export default function HomeScreen() {
           <TouchableOpacity
             style={styles.iconButton}
             onPress={() => {
-              if (user) navigation.navigate('mess_index');
-              else navigation.navigate('login', { redirectScreen: 'mess_index' });
+              if (user) {
+                navigation.navigate('mess_index');
+                setBadgeMess(false);
+              } else navigation.navigate('login', { redirectScreen: 'mess_index' });
             }}
           >
             <Ionicons name="chatbox-outline" size={24} color="#333" />
+            {badgeMess && (
+              <View
+                style={{
+                  position: 'absolute',
+                  right: -4,
+                  top: -2,
+                  backgroundColor: 'red',
+                  borderRadius: 10,
+                  minWidth: 16,
+                  height: 16,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  paddingHorizontal: 3,
+                }}
+              >
+                <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold' }}>1+</Text>
+              </View>
+            )}
           </TouchableOpacity>
         </View>
 

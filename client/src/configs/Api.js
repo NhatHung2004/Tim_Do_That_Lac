@@ -16,8 +16,11 @@ export const endpoints = {
   register: '/users/',
   posts: '/posts/',
   postDetail: id => `/posts/${id}/`,
-  userDetail: user_id => `/users/${user_id}`,
+  postComments: post_id => `/posts/${post_id}/comments/`,
+  addComment: '/comments/',
+  userDetail: user_id => `/users/${user_id}/`,
   userPosts: user_id => `/users/${user_id}/posts/`,
+  changePassword: user_id => `/users/${user_id}/change_password/`,
   batchPosts: 'posts/batch/',
   chatrooms: '/chatrooms/',
   tags: '/tags/',
@@ -26,7 +29,11 @@ export const endpoints = {
   detelePostImage: image_id => `/postimages/${image_id}/`,
   fcmToken: '/fcm_token/',
   notifications: user_id => `/users/${user_id}/notifications/`,
+  deleteNoti: noti_id => `/notifications/${noti_id}/`,
+  deleteAllNoti: user_id => `/users/${user_id}/notifications/`,
   markReadNoti: noti_id => `/notifications/${noti_id}/mark_read/`,
+  changeStatus: post_id => `/posts/${post_id}/found/`,
+  userStats: '/user-stats/',
 };
 
 export const AuthApi = () => {
@@ -59,6 +66,7 @@ export const AuthApi = () => {
         // Handling expired or invalid tokens
         await AsyncStorage.removeItem('token');
         const refresh = await AsyncStorage.getItem('refresh');
+        console.log('Refresh token:', refresh);
 
         if (refresh) {
           try {
@@ -74,7 +82,9 @@ export const AuthApi = () => {
           } catch (refreshError) {
             // If refresh also fails, logout the user
             await AsyncStorage.removeItem('refresh');
+            await AsyncStorage.removeItem('token');
             console.log(refreshError);
+            return Promise.reject(refreshError);
           }
         }
       }

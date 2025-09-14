@@ -2,7 +2,7 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework.exceptions import ValidationError
 from rest_framework.relations import PrimaryKeyRelatedField
 from rest_framework.serializers import ModelSerializer
-from dothatlac.models import PostImage, Post, User, Category, Tag, ChatRoom, Notification
+from dothatlac.models import PostImage, Post, User, Category, Tag, ChatRoom, Notification, Comment
 import re
 from rest_framework.fields import URLField
 from cloudinary import uploader
@@ -52,6 +52,11 @@ class UserSerializer(ModelSerializer):
     class Meta:
         model = User
         fields = ['id', 'username', 'full_name', 'avatar']
+
+class UserUpdateSerializer(ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email', 'full_name', 'avatar']
 
 # POST SERIALIZER
 class PostSerializer(ModelSerializer):
@@ -128,4 +133,23 @@ class ChatRoomSerializer(ModelSerializer):
 class NotificationSerializer(ModelSerializer):
     class Meta:
         model = Notification
-        fields = ['id', 'title', 'body', 'created_at', 'user_id', 'link', 'is_read']
+        fields = ['id', 'title', 'body', 'created_at', 'user_id', 'link', 'is_read', 'reason']
+
+# COMMENT
+class CommentSerializer(ModelSerializer):
+    user = UserSerializer(read_only=True)
+    user_id = PrimaryKeyRelatedField(
+        queryset=User.objects.all(),
+        write_only=True,
+        source='user'
+    )
+    post_id = PrimaryKeyRelatedField(
+        queryset=Post.objects.all(),
+        write_only=True,
+        source='post'
+    )
+    post = PostSerializer(read_only=True)
+
+    class Meta:
+        model = Comment
+        fields = ['id', 'content', 'created_at', 'post', 'user', 'user_id', 'post_id']

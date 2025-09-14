@@ -1,4 +1,4 @@
-import { Platform, StyleSheet } from 'react-native';
+import { StyleSheet, Platform } from 'react-native';
 import Colors from '../constants/colors';
 
 export default StyleSheet.create({
@@ -25,22 +25,6 @@ export default StyleSheet.create({
     fontWeight: 'bold',
     color: Colors.black,
   },
-  notificationIcon: {
-    width: 24,
-    height: 24,
-    tintColor: Colors.black,
-  },
-  profileSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.white,
-    paddingVertical: 20,
-    paddingHorizontal: 15,
-    marginTop: 10,
-    marginBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.gray,
-  },
   avatar: {
     width: 60,
     height: 60,
@@ -53,8 +37,43 @@ export default StyleSheet.create({
     color: Colors.black,
     marginLeft: 10,
   },
-  listItemIcon: {
-    marginRight: 15,
-    tintColor: '#555',
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginTop: 12,
+    marginBottom: 6,
+    paddingHorizontal: 16,
+  },
+  item: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  itemText: {
+    flex: 1,
+    fontSize: 16,
+    color: '#000',
+  },
+  icon: {
+    marginRight: 12,
+  },
+  arrow: {
+    marginLeft: 'auto',
+  },
+  profileSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.white,
+    paddingVertical: 20,
+    paddingHorizontal: 15,
+    marginTop: 10,
+    marginBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.gray,
   },
 });

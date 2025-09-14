@@ -50,7 +50,7 @@ export default function NotificationHandler() {
         console.log('Android notification permission:', granted);
       }
 
-      // 4. Quit
+      // Quit
       const initialNotification = await getInitialNotification(messaging);
       if (initialNotification) {
         console.log('getInitialNotification (Quit):', initialNotification);

@@ -18,6 +18,8 @@ export const endpoints = {
   postDetail: (post_id) => `/admin/posts/${post_id}/`,
   approve: (post_id) => `/admin/posts/${post_id}/approve/`,
   reject: (post_id) => `/admin/posts/${post_id}/reject/`,
+  statsSummary: '/stats/summary/',
+  stats_posts_by_month: '/stats/posts_by_month/',
 };
 
 let isRefreshing = false;
@@ -61,8 +63,6 @@ export const AuthApi = () => {
 
         try {
           const res = await axios.post(`${BASE_URL}token/refresh/`, {}, { withCredentials: true });
-
-          console.log(res.data);
 
           const newToken = res.data.access;
           localStorage.setItem('token', newToken);

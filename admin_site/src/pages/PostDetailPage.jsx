@@ -24,6 +24,9 @@ export default function PostDetailPage() {
   const [loading, setLoading] = useState(false);
   const current_user = useContext(MyUserContext);
 
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
+
   const fetchPostData = async () => {
     try {
       setLoading(true);
@@ -44,6 +47,24 @@ export default function PostDetailPage() {
       fetchPostData();
     } catch (error) {
       console.log(error.response.data);
+      setLoading(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRejectPost = async () => {
+    if (!rejectReason.trim()) return alert('Vui lòng nhập lý do từ chối!');
+    try {
+      setLoading(true);
+      await AuthApi().patch(endpoints.reject(post_id), {
+        reason: rejectReason,
+      });
+      setShowRejectModal(false);
+      setRejectReason('');
+      fetchPostData();
+    } catch (error) {
+      console.log(error.response?.data || error);
       setLoading(false);
     } finally {
       setLoading(false);
@@ -75,6 +96,11 @@ export default function PostDetailPage() {
         color: 'bg-red-100 text-red-700',
         icon: <XCircle size={16} />,
         label: 'Từ chối',
+      },
+      found: {
+        color: 'bg-blue-100 text-blue-700',
+        icon: <PackageSearch size={16} />,
+        label: 'Tìm thấy',
       },
     };
     const cfg = map[status] || map.processing;
@@ -209,7 +235,7 @@ export default function PostDetailPage() {
 
           {/* Footer actions */}
           <div className="flex justify-end gap-3 p-4 border-t bg-gray-50">
-            {post.status !== 'approved' ? (
+            {post.status === 'processing' ? (
               <>
                 <button
                   className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 flex items-center gap-2"
@@ -217,7 +243,10 @@ export default function PostDetailPage() {
                 >
                   <CheckCircle size={18} /> {loading ? 'Đang xử lý...' : 'Duyệt tin'}
                 </button>
-                <button className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 flex items-center gap-2">
+                <button
+                  className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 flex items-center gap-2"
+                  onClick={() => setShowRejectModal(true)}
+                >
                   <XCircle size={18} /> Từ chối
                 </button>
               </>
@@ -226,6 +255,36 @@ export default function PostDetailPage() {
                 <XCircle size={18} /> Xoá bài
               </button>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Reject Modal */}
+      {showRejectModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6 space-y-4">
+            <h2 className="text-lg font-bold text-gray-700">Nhập lý do từ chối</h2>
+            <textarea
+              className="w-full border rounded-lg p-2 focus:outline-green-600"
+              rows={4}
+              placeholder="Ví dụ: Nội dung không phù hợp..."
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                className="px-4 py-2 rounded-lg bg-gray-300 text-gray-700 hover:bg-gray-400"
+                onClick={() => setShowRejectModal(false)}
+              >
+                Hủy
+              </button>
+              <button
+                className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700"
+                onClick={handleRejectPost}
+              >
+                Xác nhận từ chối
+              </button>
+            </div>
           </div>
         </div>
       )}

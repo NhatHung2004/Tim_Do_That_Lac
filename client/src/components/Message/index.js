@@ -35,7 +35,6 @@ const MessagesScreen = () => {
       try {
         const res = await AuthApi(token).get(endpoints.chatrooms);
         setChatData(res.data);
-        console.log(res.data);
       } catch (error) {
         console.log(error);
       }
@@ -66,14 +65,10 @@ const MessagesScreen = () => {
         <View style={styles.chatHeader}>
           <Text style={styles.chatUserName}>
             {item.user1.username === user?.current_user.username
-              ? item.user2.username
-              : item.user1.username}
+              ? item.user2.full_name || item.user2.username
+              : item.user1.full_name || item.user1.username}
           </Text>
-          <Text style={styles.chatLastActive}>123</Text>
         </View>
-        <Text style={styles.chatLastMessage} numberOfLines={1}>
-          456
-        </Text>
       </View>
     </TouchableOpacity>
   );
@@ -146,9 +141,7 @@ const MessagesScreen = () => {
               resizeMode="contain"
             />
             <Text style={styles.emptyStateTitle}>Bạn chưa có cuộc trò chuyện nào!</Text>
-            <Text style={styles.emptyStateSubtitle}>
-              Trải nghiệm chat để làm rõ thông tin về mặt hàng trước khi bắt đầu thực hiện mua bán
-            </Text>
+            <Text style={styles.emptyStateSubtitle}>Trải nghiệm chat</Text>
             <TouchableOpacity
               style={styles.goToHomeButton}
               onPress={() => {

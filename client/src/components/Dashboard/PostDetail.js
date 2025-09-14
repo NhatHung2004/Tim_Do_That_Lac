@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useContext } from 'react';
+import { useState, useRef, useEffect, useContext, use } from 'react';
 import {
   View,
   Text,
@@ -15,49 +15,50 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import Colors from '../../constants/colors';
 import { useNavigation } from '@react-navigation/native';
-import Api, { endpoints } from '../../configs/Api';
+import Api, { AuthApi, endpoints } from '../../configs/Api';
 import { useRoute } from '@react-navigation/native';
 import { MyUserContext } from '../../configs/MyContext';
 import FormatDate from '../../utils/FormatDate';
 import styles from '../../styles/PostDetailStyle';
+import MyLoading from '../ui/MyLoading';
 
 const PostDetail = () => {
   const user = useContext(MyUserContext);
-
-  const commentsData = [
-    {
-      id: '1',
-      name: 'Thanh Minh Vũ',
-      content: 'ádasdasd',
-      time: '5 ngày trước',
-    },
-    {
-      id: '2',
-      name: 'Nhi Lâm',
-      content: 'lkslkdhflh',
-      time: '2 tuần trước',
-    },
-  ];
-
   const navigation = useNavigation();
   const route = useRoute();
   const [postData, setPostData] = useState({});
-  const [comments, setComments] = useState(commentsData);
+  const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
+  const [loadingComment, setLoadingComment] = useState(false);
 
   const { postID } = route.params; // Get postID from params
 
+  const fetchPostData = async () => {
+    try {
+      const response = await Api.get(`${endpoints['posts']}${postID}/`);
+      setPostData(response.data);
+    } catch (error) {
+      console.error('Error fetching post data:', error);
+      Alert.alert('Lỗi', 'Không thể tải dữ liệu bài đăng');
+    }
+  };
+
+  const fetchComments = async () => {
+    try {
+      const response = await Api.get(endpoints.postComments(postID));
+      console.log('Comments data:', response.data);
+      setComments(response.data);
+    } catch (error) {
+      console.error('Error fetching comments:', error);
+    }
+  };
+
   useEffect(() => {
-    const fetchPostData = async () => {
-      try {
-        const response = await Api.get(`${endpoints['posts']}${postID}/`);
-        setPostData(response.data);
-      } catch (error) {
-        console.error('Error fetching post data:', error);
-        Alert.alert('Lỗi', 'Không thể tải dữ liệu bài đăng');
-      }
-    };
     fetchPostData(); // Fetch detail post api
+  }, []);
+
+  useEffect(() => {
+    fetchComments(); // Fetch post comments api
   }, []);
 
   const images = postData.images || [];
@@ -77,16 +78,26 @@ const PostDetail = () => {
     itemVisiblePercentThreshold: 50,
   }).current;
 
-  const addComment = () => {
+  const addComment = async () => {
     if (newComment.trim() === '') return;
-    const newItem = {
-      id: (comments.length + 1).toString(),
-      name: 'Bạn',
-      content: newComment,
-      time: 'Vừa xong',
-    };
-    setComments([newItem, ...comments]);
-    setNewComment('');
+
+    try {
+      setLoadingComment(true);
+      const res = await AuthApi().post(endpoints.addComment, {
+        post_id: postID,
+        content: newComment,
+        user_id: user.current_user.id,
+      });
+      setComments(prev => [...prev, res.data]); // Refresh comments after adding a new one
+      setNewComment('');
+    } catch (error) {
+      setLoadingComment(false);
+      console.error('Error adding comment:', error);
+      Alert.alert('Lỗi', 'Không thể thêm bình luận');
+      return;
+    } finally {
+      setLoadingComment(false);
+    }
   };
 
   return (
@@ -185,14 +196,16 @@ const PostDetail = () => {
               comments.map(item => (
                 <View key={item.id} style={styles.commentContainer}>
                   <View style={styles.avatar}>
-                    <Text style={styles.avatarText}>{item.name[0]}</Text>
+                    <Text style={styles.avatarText}>
+                      {item.user.full_name ? item.user.full_name[0] : item.user.username[0]}
+                    </Text>
                   </View>
                   <View style={styles.commentBox}>
-                    <Text style={styles.userName}>{item.name}</Text>
+                    <Text style={styles.userName}>{item.user.full_name || item.user.username}</Text>
                     <Text style={styles.commentText}>{item.content}</Text>
                     <View style={styles.footerComment}>
                       <Text style={styles.reply}>Trả lời</Text>
-                      <Text style={styles.time}>{item.time}</Text>
+                      <Text style={styles.time}>{FormatDate(item.created_at)}</Text>
                     </View>
                   </View>
                 </View>
@@ -211,7 +224,11 @@ const PostDetail = () => {
               onChangeText={setNewComment}
             />
             <TouchableOpacity onPress={addComment}>
-              <Text style={styles.send}>➤</Text>
+              {loadingComment ? (
+                <MyLoading color={Colors.primary} />
+              ) : (
+                <Text style={styles.send}>➤</Text>
+              )}
             </TouchableOpacity>
           </View>
         </View>
