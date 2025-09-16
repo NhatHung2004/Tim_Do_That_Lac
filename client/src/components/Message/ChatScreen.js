@@ -64,7 +64,6 @@ const ChatScreen = () => {
 
       webSocketRef.current.onmessage = event => {
         const data = JSON.parse(event.data);
-        console.log('Received message:', data);
         setMessages(prevMessages => [...prevMessages, data]);
       };
 

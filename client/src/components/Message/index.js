@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import Colors from '../../constants/colors';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { endpoints, AuthApi } from '../../configs/Api';
 import { MyUserContext } from '../../configs/MyContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -21,6 +21,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const { width, height } = Dimensions.get('window');
 
 const MessagesScreen = () => {
+  const route = useRoute();
   const [isFilterModalVisible, setFilterModalVisible] = useState(false);
   const filterButtonRef = useRef(null); // Tạo ref để lấy vị trí nút
   const [filterModalPosition, setFilterModalPosition] = useState({ top: 0, left: 0, width: 0 });
@@ -28,6 +29,7 @@ const MessagesScreen = () => {
   const navigation = useNavigation();
   const user = useContext(MyUserContext);
   const [chatData, setChatData] = useState([]); // Mảng chứa toàn bộ tin nhắn của current_user
+  const { unreadID } = route.params;
 
   useEffect(() => {
     const fetchData = async () => {
@@ -45,22 +47,36 @@ const MessagesScreen = () => {
   const renderNormalChatItem = ({ item }) => (
     <TouchableOpacity
       style={styles.chatItemContainer}
-      onPress={() =>
+      onPress={() => {
+        const readID =
+          item.user1.username === user?.current_user.username ? item.user2.id : item.user1.id;
+        navigation.setParams({ unreadID: unreadID.filter(id => id !== readID) });
         navigation.navigate('chat_screen', {
           other_user_id:
             item.user1.username === user?.current_user.username ? item.user2.id : item.user1.id,
-        })
-      }
+        });
+      }}
     >
-      <Image
-        source={{
-          uri:
-            item.user1.username === user?.current_user.username
-              ? item.user2.avatar
-              : item.user1.avatar,
-        }}
-        style={styles.chatUserAvatar}
-      />
+      <View style={{ position: 'relative' }}>
+        <Image
+          source={{
+            uri:
+              item.user1.username === user?.current_user.username
+                ? item.user2.avatar
+                : item.user1.avatar,
+          }}
+          style={styles.chatUserAvatar}
+        />
+        {console.log('UnreadID:', unreadID)}
+        {/* Badge đỏ hiển thị số chưa đọc */}
+        {item.user1.username !== user?.current_user.username
+          ? unreadID.includes(item.user1.id)
+          : unreadID.includes(item.user2.id) && (
+              <View style={styles.unreadBadge}>
+                <Text style={styles.unreadBadgeText}>1+</Text>
+              </View>
+            )}
+      </View>
       <View style={styles.chatContent}>
         <View style={styles.chatHeader}>
           <Text style={styles.chatUserName}>
@@ -399,6 +415,23 @@ const styles = StyleSheet.create({
   filterOptionText: {
     fontSize: 16,
     color: Colors.textDark,
+  },
+  unreadBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    backgroundColor: 'red',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  unreadBadgeText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
 });
 

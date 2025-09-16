@@ -44,6 +44,7 @@ export default function HomeScreen() {
   const [selectedFilter, setSelectedFilter] = useState([]);
   const [badgeCount, setBadgeCount] = useState(0);
   const [badgeMess, setBadgeMess] = useState(false);
+  const [unreadID, setUnreadID] = useState([]);
 
   const user = useContext(MyUserContext);
   const animatedHeight = useRef(new Animated.Value(0)).current;
@@ -90,8 +91,10 @@ export default function HomeScreen() {
       if (remoteMessage.data) {
         console.log('onMessage (Foreground):', remoteMessage.data);
 
-        if (remoteMessage.data.type === 'message') setBadgeMess(true);
-        else {
+        if (remoteMessage.data.type === 'message') {
+          setBadgeMess(true);
+          setUnreadID([...unreadID, parseInt(remoteMessage.data.user_chat_id)]);
+        } else {
           setBadgeCount(prevCount => {
             const newCount = prevCount + 1;
             if (newCount > 3) return 3; // Maximum limit
@@ -334,7 +337,7 @@ export default function HomeScreen() {
             style={styles.iconButton}
             onPress={() => {
               if (user) {
-                navigation.navigate('mess_index');
+                navigation.navigate('mess_index', { unreadID: unreadID });
                 setBadgeMess(false);
               } else navigation.navigate('login', { redirectScreen: 'mess_index' });
             }}

@@ -105,7 +105,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             'timestamp': timestamp
         }))
 
-        await sync_to_async(send_message_notification)(self.other_user)
+        await sync_to_async(send_message_notification)(self.other_user, self.user)
         print(f"Sent message: '{content}' from {username} to client {self.channel_name}")
 
 

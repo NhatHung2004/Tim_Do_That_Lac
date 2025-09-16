@@ -1,12 +1,13 @@
 from firebase_admin import messaging as fcm
 
-def send_message_notification(user):
+def send_message_notification(user, current_user):
     # If the token belongs to multiple devices, get it from the list.
     tokens = list(user.fcm_tokens.values_list('token', flat=True))
 
     message = fcm.MulticastMessage(
         data={
             "type": "message",
+            "user_chat_id": str(current_user.id),
         },
         tokens=tokens,
     )
